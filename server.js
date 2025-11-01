@@ -103,5 +103,5 @@ Respond conversationally and clearly.
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`✅ Agent server is running on http://localhost:${PORT}`);
+  console.log(`✅ Agent server is running on PORT: ${PORT}`);
 });
