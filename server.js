@@ -8,6 +8,7 @@ import { Client } from '@notionhq/client';
 dotenv.config();
 const app = express();
 app.use(express.json());
+app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
 

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SPIDER-SWING — Dusk City</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0614; }
+  body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; }
+  canvas { display: block; }
+
+  /* ---------- Title overlay ---------- */
+  #overlay {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(10,6,20,0.45) 0%, rgba(10,6,20,0.85) 100%);
+    cursor: pointer; transition: opacity 0.4s ease;
+  }
+  #overlay.hidden { opacity: 0; pointer-events: none; }
+  .title {
+    font-size: clamp(48px, 9vw, 110px); font-weight: 900; letter-spacing: 0.06em;
+    background: linear-gradient(180deg, #ff4d4d 0%, #e3173d 45%, #5a6cff 55%, #2233cc 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 60px rgba(227, 23, 61, 0.45);
+    filter: drop-shadow(0 6px 18px rgba(0,0,0,0.6));
+  }
+  .subtitle {
+    color: #c9c4e8; font-size: clamp(14px, 2vw, 20px); margin-top: 6px; letter-spacing: 0.25em;
+    text-transform: uppercase; opacity: 0.85;
+  }
+  .controls {
+    margin-top: 38px; display: grid; grid-template-columns: auto auto; gap: 10px 22px;
+    color: #e8e6f5; font-size: 15px; background: rgba(20,14,40,0.55);
+    border: 1px solid rgba(140,120,255,0.25); border-radius: 14px; padding: 22px 30px;
+    backdrop-filter: blur(6px);
+  }
+  .controls b {
+    color: #ffd28a; font-weight: 700; text-align: right;
+    font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  }
+  .clickToPlay {
+    margin-top: 34px; color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 0.18em;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
+  .credit { position: absolute; bottom: 18px; color: #6e679a; font-size: 12px; letter-spacing: 0.1em; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; opacity: 0; transition: opacity 0.4s; }
+  #hud.on { opacity: 1; }
+  .panel {
+    position: absolute; color: #fff; background: rgba(12,8,26,0.45);
+    border: 1px solid rgba(140,120,255,0.22); border-radius: 12px; padding: 10px 16px;
+    backdrop-filter: blur(4px); font-size: 14px; line-height: 1.5;
+  }
+  #scorePanel { top: 18px; left: 18px; }
+  #scorePanel .big { font-size: 26px; font-weight: 800; color: #ffd28a; letter-spacing: 0.04em; }
+  #statsPanel { top: 18px; right: 18px; text-align: right; font-variant-numeric: tabular-nums; }
+  #statsPanel .big { font-size: 22px; font-weight: 800; color: #8ecbff; }
+  #hint {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    color: rgba(235,232,255,0.75); font-size: 13px; letter-spacing: 0.08em;
+    background: rgba(12,8,26,0.4); padding: 8px 18px; border-radius: 20px;
+    border: 1px solid rgba(140,120,255,0.18);
+  }
+  #crosshair {
+    position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
+    transform: translate(-50%, -50%); border-radius: 50%;
+    background: rgba(255,255,255,0.9); box-shadow: 0 0 8px rgba(255,255,255,0.8), 0 0 2px #000;
+  }
+  #crosshair::after {
+    content: ''; position: absolute; inset: -9px; border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.35);
+  }
+  #crosshair.locked { background: #7dffb0; box-shadow: 0 0 10px #7dffb0; }
+
+  .popup {
+    position: absolute; color: #ffd28a; font-weight: 800; font-size: 22px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.8); pointer-events: none;
+    animation: rise 0.9s ease-out forwards;
+  }
+  @keyframes rise { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -70px); } }
+</style>
+</head>
+<body>
+  <div id="hud">
+    <div class="panel" id="scorePanel">
+      <div class="big" id="score">0</div>
+      <div>ORBS <span id="orbs">0</span></div>
+    </div>
+    <div class="panel" id="statsPanel">
+      <div class="big"><span id="speed">0</span> mph</div>
+      <div>ALT <span id="alt">0</span> m</div>
+    </div>
+    <div id="crosshair"></div>
+    <div id="hint">HOLD CLICK / SPACE to web-swing &nbsp;·&nbsp; release at the top of the arc to fly</div>
+  </div>
+
+  <div id="overlay">
+    <div class="title">SPIDER-SWING</div>
+    <div class="subtitle">Dusk over the city</div>
+    <div class="controls">
+      <b>MOUSE</b><span>Look / aim webs</span>
+      <b>HOLD LMB / SPACE</b><span>Fire &amp; hold web line</span>
+      <b>W A S D</b><span>Run · steer in the air</span>
+      <b>SHIFT</b><span>Reel in web · sprint</span>
+      <b>SPACE</b><span>Jump (on the ground)</span>
+      <b>R</b><span>Reset to rooftop</span>
+    </div>
+    <div class="clickToPlay">▶ &nbsp;CLICK TO PLAY</div>
+    <div class="credit">A FAN-MADE WEB-SWINGING SANDBOX · THREE.JS</div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./lib/three.module.js",
+      "three/addons/": "./lib/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>

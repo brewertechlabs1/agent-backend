@@ -2,6 +2,25 @@
 
 Express.js server for managing AI agents with Notion memory integration.
 
+## 🕸️ SPIDER-SWING — web-swinging game
+
+A 3D Spider-Man-style web-swinging sandbox built with Three.js lives in `public/spiderman/`.
+No API keys needed — just start the server and open:
+
+```
+npm start
+# then visit http://localhost:3000/spiderman/
+```
+
+**Controls:** mouse to look/aim · hold **LMB / Space** to fire and hold a web line ·
+**WASD** to run and steer mid-air · **Shift** to reel in (or sprint) · **Space** to jump ·
+**R** to reset to a rooftop. Collect the glowing red orbs scattered through the skyline.
+
+Features: procedural dusk city with emissive windows, pendulum-physics swinging,
+HDR bloom post-processing, soft shadows, dynamic FOV, procedural hero animation,
+and WebAudio wind/thwip sound. All Three.js files are vendored locally
+(`public/spiderman/lib/`), so it works fully offline.
+
 ## Fixed Issues
 
 1. **Updated OpenAI SDK usage**: Replaced deprecated `Configuration` and `OpenAIApi` with modern `OpenAI` client (v6.x)
