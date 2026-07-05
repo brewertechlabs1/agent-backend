@@ -1,0 +1,540 @@
+<style>
+  :root {
+    --blue: #1a73e8;
+    --blue-dark: #1557b0;
+    --green: #188038;
+    --red: #d93025;
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --text: #202124;
+    --muted: #5f6368;
+    --border: #dadce0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 16px;
+    padding-bottom: 76px; /* room for tab bar */
+  }
+  header {
+    background: var(--blue); color: #fff; padding: 14px 16px;
+    font-size: 20px; font-weight: 600; position: sticky; top: 0; z-index: 10;
+  }
+  main { padding: 12px; max-width: 640px; margin: 0 auto; }
+
+  /* Stat tiles */
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+  .stat b { display: block; font-size: 24px; color: var(--blue); }
+  .stat span { font-size: 13px; color: var(--muted); }
+
+  /* Cards */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .card img.thumb {
+    width: 72px; height: 72px; object-fit: cover; border-radius: 8px;
+    background: #eee; flex-shrink: 0;
+  }
+  .card .noimg {
+    width: 72px; height: 72px; border-radius: 8px; background: #e8eaed; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+  }
+  .card .info { flex: 1; min-width: 0; }
+  .card h3 { font-size: 17px; margin-bottom: 2px; word-wrap: break-word; }
+  .card p { font-size: 14px; color: var(--muted); word-wrap: break-word; }
+  .badge {
+    display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 10px;
+    background: #e6f4ea; color: var(--green); margin-top: 4px;
+  }
+  .badge.out { background: #fce8e6; color: var(--red); }
+
+  /* Buttons */
+  button {
+    font-family: inherit; font-size: 16px; border: none; border-radius: 10px;
+    padding: 14px 18px; cursor: pointer;
+  }
+  .btn-primary { background: var(--blue); color: #fff; width: 100%; font-weight: 600; }
+  .btn-primary:active { background: var(--blue-dark); }
+  .btn-danger { background: #fce8e6; color: var(--red); width: 100%; }
+  .btn-plain { background: #e8eaed; color: var(--text); width: 100%; }
+  .btn-small { padding: 8px 12px; font-size: 14px; }
+  .row-btns { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* Floating add button */
+  .fab {
+    position: fixed; right: 18px; bottom: 88px; width: 60px; height: 60px;
+    border-radius: 50%; background: var(--blue); color: #fff; font-size: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25); z-index: 20;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+
+  /* Bottom tabs */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
+    border-top: 1px solid var(--border); display: flex; z-index: 30;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  nav button {
+    flex: 1; background: none; border-radius: 0; padding: 10px 0 12px;
+    font-size: 12px; color: var(--muted); display: flex; flex-direction: column;
+    align-items: center; gap: 2px;
+  }
+  nav button .ic { font-size: 22px; }
+  nav button.active { color: var(--blue); font-weight: 600; }
+
+  /* Forms / modal */
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 40;
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  .modal.open { display: flex; }
+  .sheet {
+    background: var(--card); width: 100%; max-width: 640px; max-height: 92vh;
+    border-radius: 18px 18px 0 0; padding: 18px; overflow-y: auto;
+  }
+  .sheet h2 { font-size: 19px; margin-bottom: 14px; }
+  label { display: block; font-size: 14px; color: var(--muted); margin: 12px 0 4px; }
+  input, select, textarea {
+    width: 100%; font-family: inherit; font-size: 16px; padding: 12px;
+    border: 1px solid var(--border); border-radius: 10px; background: #fff;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Photo picker */
+  .photo-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .photo-strip .ph { position: relative; }
+  .photo-strip img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; }
+  .photo-strip .rm {
+    position: absolute; top: -6px; right: -6px; width: 24px; height: 24px;
+    border-radius: 50%; background: var(--red); color: #fff; font-size: 14px;
+    padding: 0; line-height: 24px;
+  }
+  .photo-add {
+    width: 72px; height: 72px; border: 2px dashed var(--border); border-radius: 8px;
+    background: none; color: var(--muted); font-size: 26px; padding: 0;
+  }
+
+  .search { margin-bottom: 12px; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 16px; font-size: 15px; }
+  .toast {
+    position: fixed; top: 66px; left: 50%; transform: translateX(-50%);
+    background: #323232; color: #fff; padding: 10px 20px; border-radius: 24px;
+    font-size: 14px; z-index: 60; display: none; white-space: nowrap;
+  }
+  .spinner {
+    display: none; position: fixed; inset: 0; z-index: 50;
+    background: rgba(255,255,255,.6); align-items: center; justify-content: center;
+  }
+  .spinner.on { display: flex; }
+  .spinner div {
+    width: 44px; height: 44px; border: 4px solid var(--border);
+    border-top-color: var(--blue); border-radius: 50%; animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ev-date { font-weight: 600; color: var(--blue); font-size: 14px; }
+</style>
+
+<header id="hdr">📦 Storage Inventory</header>
+<main id="main"></main>
+
+<button class="fab" id="fab" onclick="onFab()">+</button>
+
+<nav>
+  <button id="tab-inventory" class="active" onclick="showTab('inventory')"><span class="ic">📦</span>Inventory</button>
+  <button id="tab-clients" onclick="showTab('clients')"><span class="ic">👤</span>Clients</button>
+  <button id="tab-calendar" onclick="showTab('calendar')"><span class="ic">📅</span>Calendar</button>
+</nav>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<div class="spinner" id="spinner"><div></div></div>
+
+<script>
+  var state = { tab: 'inventory', items: [], clients: [], events: [], stats: null, search: '' };
+  var pendingPhotos = [];   // [{name, mimeType, base64, dataUrl}]
+  var keepPhotoIds = [];    // existing photos kept while editing
+
+  /* ------------------------------ utilities ------------------------------ */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.style.display = 'block';
+    clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, 2500);
+  }
+  function busy(on) { $('spinner').className = on ? 'spinner on' : 'spinner'; }
+  function call(fn, args, done) {
+    busy(true);
+    google.script.run
+      .withSuccessHandler(function (r) { busy(false); done && done(r); })
+      .withFailureHandler(function (e) { busy(false); alert('Something went wrong:\n' + e.message); })
+      [fn].apply(null, args || []);
+  }
+  function openModal(html) { $('sheet').innerHTML = html; $('modal').className = 'modal open'; }
+  function closeModal() { $('modal').className = 'modal'; pendingPhotos = []; keepPhotoIds = []; }
+  $('modal').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+
+  /* -------------------------------- tabs --------------------------------- */
+  function showTab(tab) {
+    state.tab = tab;
+    ['inventory', 'clients', 'calendar'].forEach(function (t) {
+      $('tab-' + t).className = (t === tab) ? 'active' : '';
+    });
+    $('fab').style.display = 'flex';
+    render();
+    refresh();
+  }
+  function onFab() {
+    if (state.tab === 'inventory') itemForm();
+    else if (state.tab === 'clients') clientForm();
+    else apptForm();
+  }
+  function refresh() {
+    if (state.tab === 'inventory') {
+      call('getDashboard', [], function (s) { state.stats = s; render(); });
+      call('getItems', [], function (r) { state.items = r; render(); });
+    } else if (state.tab === 'clients') {
+      call('getClients', [], function (r) { state.clients = r; render(); });
+    } else {
+      call('getUpcomingEvents', [60], function (r) { state.events = r; render(); });
+    }
+  }
+
+  /* ------------------------------- render -------------------------------- */
+  function render() {
+    if (state.tab === 'inventory') renderInventory();
+    else if (state.tab === 'clients') renderClients();
+    else renderCalendar();
+  }
+
+  function renderInventory() {
+    var h = '';
+    if (state.stats) {
+      h += '<div class="stats">' +
+        '<div class="stat"><b>' + state.stats.itemCount + '</b><span>Items stored</span></div>' +
+        '<div class="stat"><b>$' + Number(state.stats.totalValue).toLocaleString() + '</b><span>Total value</span></div>' +
+        '</div>';
+    }
+    h += '<div class="search"><input placeholder="🔍 Search items..." value="' + esc(state.search) +
+         '" oninput="state.search=this.value;renderInventory()"></div>';
+
+    var q = state.search.toLowerCase();
+    var items = state.items.filter(function (it) {
+      return !q || (String(it.Name) + ' ' + it.Description + ' ' + it.Category + ' ' + it.Unit)
+        .toLowerCase().indexOf(q) !== -1;
+    });
+
+    if (!items.length) {
+      h += '<div class="empty">' + (state.items.length ? 'No items match your search.' :
+        'No items yet.<br><br>Tap the blue <b>+</b> button to add your first item — you can snap a photo right from your phone!') + '</div>';
+    }
+    items.forEach(function (it, i) {
+      var img = it.photos && it.photos.length
+        ? '<img class="thumb" src="' + esc(it.photos[0].thumb) + '" alt="">'
+        : '<div class="noimg">📦</div>';
+      var out = String(it.Status).toLowerCase().indexOf('storage') === -1;
+      h += '<div class="card" onclick="itemDetail(' + i0(it) + ')">' + img +
+        '<div class="info"><h3>' + esc(it.Name) + '</h3>' +
+        '<p>' + esc(it.Unit ? 'Unit ' + it.Unit : '') + (it.Category ? ' · ' + esc(it.Category) : '') +
+        (it.Quantity > 1 ? ' · Qty ' + esc(it.Quantity) : '') + '</p>' +
+        '<span class="badge' + (out ? ' out' : '') + '">' + esc(it.Status || 'In Storage') + '</span>' +
+        '</div></div>';
+    });
+    $('main').innerHTML = h;
+  }
+  // stash index lookup so onclick handlers stay simple
+  function i0(it) { return state.items.indexOf(it); }
+
+  function renderClients() {
+    var h = '';
+    if (!state.clients.length) {
+      h = '<div class="empty">No clients yet.<br><br>Tap the blue <b>+</b> button to add one.</div>';
+    }
+    state.clients.forEach(function (c, i) {
+      h += '<div class="card" onclick="clientDetail(' + i + ')">' +
+        '<div class="noimg">👤</div><div class="info"><h3>' + esc(c.Name) + '</h3>' +
+        '<p>' + esc(c.Unit ? 'Unit ' + c.Unit : '') + (c.Phone ? ' · ' + esc(c.Phone) : '') + '</p>' +
+        '</div></div>';
+    });
+    $('main').innerHTML = h;
+  }
+
+  function renderCalendar() {
+    var h = '';
+    if (!state.events.length) {
+      h = '<div class="empty">No upcoming appointments in the next 60 days.<br><br>Tap the blue <b>+</b> button to schedule one — you\'ll get a reminder before it starts.</div>';
+    }
+    state.events.forEach(function (ev, i) {
+      h += '<div class="card"><div class="noimg">📅</div><div class="info">' +
+        '<div class="ev-date">' + esc(ev.startLabel) + '</div>' +
+        '<h3>' + esc(ev.title) + '</h3>' +
+        '<p>' + esc(ev.timeLabel) + '</p>' +
+        (ev.description ? '<p>' + esc(ev.description) + '</p>' : '') +
+        '<div class="row-btns"><button class="btn-danger btn-small" onclick="delAppt(\'' + esc(ev.id) + '\')">Cancel appointment</button></div>' +
+        '</div></div>';
+    });
+    $('main').innerHTML = h;
+  }
+
+  /* --------------------------- inventory forms ---------------------------- */
+  function itemDetail(i) {
+    var it = state.items[i];
+    if (!it) return;
+    var photos = (it.photos || []).map(function (p) {
+      return '<a href="' + esc(p.view) + '" target="_blank"><img src="' + esc(p.thumb) + '" alt=""></a>';
+    }).join('');
+    openModal(
+      '<h2>' + esc(it.Name) + '</h2>' +
+      '<div class="photo-strip">' + photos + '</div>' +
+      '<label>Details</label><p>' +
+      esc(it.Description || '—') + '</p>' +
+      '<label>Location / Unit</label><p>' + esc(it.Unit || '—') + '</p>' +
+      '<label>Category</label><p>' + esc(it.Category || '—') + '</p>' +
+      '<label>Quantity</label><p>' + esc(it.Quantity || 1) + '</p>' +
+      '<label>Value</label><p>' + (it.Value ? '$' + esc(it.Value) : '—') + '</p>' +
+      '<label>Status</label><p>' + esc(it.Status || 'In Storage') + '</p>' +
+      (it.Notes ? '<label>Notes</label><p>' + esc(it.Notes) + '</p>' : '') +
+      '<div class="row-btns">' +
+      '<button class="btn-primary" onclick="itemForm(' + i + ')">✏️ Edit</button>' +
+      '<button class="btn-danger" onclick="delItem(\'' + esc(it.ID) + '\')">🗑 Delete</button>' +
+      '</div><div class="row-btns"><button class="btn-plain" onclick="closeModal()">Close</button></div>'
+    );
+  }
+
+  function itemForm(i) {
+    var it = (i !== undefined) ? state.items[i] : null;
+    pendingPhotos = [];
+    keepPhotoIds = it ? (it.photos || []).map(function (p) { return p.id; }) : [];
+    openModal(
+      '<h2>' + (it ? 'Edit Item' : 'Add New Item') + '</h2>' +
+      '<label>Item name *</label><input id="f-name" value="' + esc(it ? it.Name : '') + '" placeholder="e.g. Dining table">' +
+      '<label>Photos</label><div class="photo-strip" id="photo-strip"></div>' +
+      '<input type="file" id="f-photo" accept="image/*" capture="environment" style="display:none" onchange="photoPicked(this)">' +
+      '<label>Description</label><textarea id="f-desc" placeholder="Anything worth noting...">' + esc(it ? it.Description : '') + '</textarea>' +
+      '<div class="two-col">' +
+      '<div><label>Unit / Location</label><input id="f-unit" value="' + esc(it ? it.Unit : '') + '" placeholder="e.g. B12"></div>' +
+      '<div><label>Category</label><input id="f-cat" value="' + esc(it ? it.Category : '') + '" placeholder="e.g. Furniture"></div>' +
+      '</div>' +
+      '<div class="two-col">' +
+      '<div><label>Quantity</label><input id="f-qty" type="number" min="1" value="' + esc(it ? it.Quantity : 1) + '"></div>' +
+      '<div><label>Value ($)</label><input id="f-val" type="number" min="0" step="0.01" value="' + esc(it ? it.Value : '') + '"></div>' +
+      '</div>' +
+      '<label>Status</label><select id="f-status">' +
+      ['In Storage', 'Removed', 'Sold', 'Donated'].map(function (s) {
+        return '<option' + (it && it.Status === s ? ' selected' : '') + '>' + s + '</option>';
+      }).join('') + '</select>' +
+      '<label>Notes</label><textarea id="f-notes">' + esc(it ? it.Notes : '') + '</textarea>' +
+      '<div class="row-btns"><button class="btn-primary" onclick="saveItem(' + (it ? i : -1) + ')">💾 Save</button></div>' +
+      '<div class="row-btns"><button class="btn-plain" onclick="closeModal()">Cancel</button></div>'
+    );
+    drawPhotoStrip(it);
+  }
+
+  function drawPhotoStrip(it) {
+    var strip = $('photo-strip');
+    if (!strip) return;
+    var h = '';
+    // existing photos still kept
+    if (it && it.photos) {
+      it.photos.forEach(function (p) {
+        if (keepPhotoIds.indexOf(p.id) === -1) return;
+        h += '<div class="ph"><img src="' + esc(p.thumb) + '" alt="">' +
+             '<button class="rm" onclick="dropExisting(\'' + esc(p.id) + '\',' + i0(it) + ')">✕</button></div>';
+      });
+    }
+    // new photos waiting for upload
+    pendingPhotos.forEach(function (p, idx) {
+      h += '<div class="ph"><img src="' + p.dataUrl + '" alt="">' +
+           '<button class="rm" onclick="dropPending(' + idx + ',' + (it ? i0(it) : -1) + ')">✕</button></div>';
+    });
+    h += '<button class="photo-add" onclick="document.getElementById(\'f-photo\').click()">📷</button>';
+    strip.innerHTML = h;
+  }
+  function dropExisting(id, i) {
+    keepPhotoIds = keepPhotoIds.filter(function (k) { return k !== id; });
+    drawPhotoStrip(i >= 0 ? state.items[i] : null);
+  }
+  function dropPending(idx, i) {
+    pendingPhotos.splice(idx, 1);
+    drawPhotoStrip(i >= 0 ? state.items[i] : null);
+  }
+
+  /** Shrink photo on the phone before uploading (fast + saves Drive space). */
+  function photoPicked(input) {
+    var file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    var img = new Image();
+    var reader = new FileReader();
+    reader.onload = function () {
+      img.onload = function () {
+        var MAX = 1280;
+        var scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        pendingPhotos.push({
+          name: file.name || 'photo.jpg',
+          mimeType: 'image/jpeg',
+          base64: dataUrl.split(',')[1],
+          dataUrl: dataUrl
+        });
+        // find current edit target to redraw strip
+        drawPhotoStrip(currentEditItem());
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  var _editIndex = -1;
+  function currentEditItem() { return _editIndex >= 0 ? state.items[_editIndex] : null; }
+
+  function saveItem(i) {
+    var name = $('f-name').value.trim();
+    if (!name) { alert('Please enter an item name.'); return; }
+    var item = {
+      name: name,
+      description: $('f-desc').value.trim(),
+      unit: $('f-unit').value.trim(),
+      category: $('f-cat').value.trim(),
+      quantity: $('f-qty').value || 1,
+      value: $('f-val').value,
+      status: $('f-status').value,
+      notes: $('f-notes').value.trim()
+    };
+    var photos = pendingPhotos.map(function (p) {
+      return { name: p.name, mimeType: p.mimeType, base64: p.base64 };
+    });
+    if (i >= 0) {
+      item.ID = state.items[i].ID;
+      item.keepPhotoIds = keepPhotoIds;
+      call('updateItem', [item, photos], function () {
+        closeModal(); toast('Item updated ✓'); refresh();
+      });
+    } else {
+      call('addItem', [item, photos], function () {
+        closeModal(); toast('Item added ✓'); refresh();
+      });
+    }
+  }
+  function delItem(id) {
+    if (!confirm('Delete this item and its photos? This cannot be undone from the app.')) return;
+    call('deleteItem', [id], function () { closeModal(); toast('Item deleted'); refresh(); });
+  }
+
+  /* ----------------------------- client forms ----------------------------- */
+  function clientDetail(i) {
+    var c = state.clients[i];
+    openModal(
+      '<h2>' + esc(c.Name) + '</h2>' +
+      '<label>Phone</label><p>' + (c.Phone ? '<a href="tel:' + esc(c.Phone) + '">' + esc(c.Phone) + '</a>' : '—') + '</p>' +
+      '<label>Email</label><p>' + (c.Email ? '<a href="mailto:' + esc(c.Email) + '">' + esc(c.Email) + '</a>' : '—') + '</p>' +
+      '<label>Unit</label><p>' + esc(c.Unit || '—') + '</p>' +
+      '<label>Move-in date</label><p>' + esc(c.MoveInDate ? String(c.MoveInDate).substring(0, 15) : '—') + '</p>' +
+      (c.Notes ? '<label>Notes</label><p>' + esc(c.Notes) + '</p>' : '') +
+      '<div class="row-btns">' +
+      '<button class="btn-primary" onclick="clientForm(' + i + ')">✏️ Edit</button>' +
+      '<button class="btn-danger" onclick="delClient(\'' + esc(c.ID) + '\')">🗑 Delete</button>' +
+      '</div><div class="row-btns"><button class="btn-plain" onclick="closeModal()">Close</button></div>'
+    );
+  }
+  function clientForm(i) {
+    var c = (i !== undefined) ? state.clients[i] : null;
+    openModal(
+      '<h2>' + (c ? 'Edit Client' : 'Add New Client') + '</h2>' +
+      '<label>Name *</label><input id="c-name" value="' + esc(c ? c.Name : '') + '">' +
+      '<label>Phone</label><input id="c-phone" type="tel" value="' + esc(c ? c.Phone : '') + '">' +
+      '<label>Email</label><input id="c-email" type="email" value="' + esc(c ? c.Email : '') + '">' +
+      '<div class="two-col">' +
+      '<div><label>Unit</label><input id="c-unit" value="' + esc(c ? c.Unit : '') + '"></div>' +
+      '<div><label>Move-in date</label><input id="c-movein" type="date"></div>' +
+      '</div>' +
+      '<label>Notes</label><textarea id="c-notes">' + esc(c ? c.Notes : '') + '</textarea>' +
+      '<div class="row-btns"><button class="btn-primary" onclick="saveClient(' + (c ? i : -1) + ')">💾 Save</button></div>' +
+      '<div class="row-btns"><button class="btn-plain" onclick="closeModal()">Cancel</button></div>'
+    );
+  }
+  function saveClient(i) {
+    var name = $('c-name').value.trim();
+    if (!name) { alert('Please enter a name.'); return; }
+    var c = {
+      name: name,
+      phone: $('c-phone').value.trim(),
+      email: $('c-email').value.trim(),
+      unit: $('c-unit').value.trim(),
+      moveInDate: $('c-movein').value,
+      notes: $('c-notes').value.trim()
+    };
+    if (i >= 0) {
+      c.ID = state.clients[i].ID;
+      call('updateClient', [c], function () { closeModal(); toast('Client updated ✓'); refresh(); });
+    } else {
+      call('addClient', [c], function () { closeModal(); toast('Client added ✓'); refresh(); });
+    }
+  }
+  function delClient(id) {
+    if (!confirm('Delete this client?')) return;
+    call('deleteClient', [id], function () { closeModal(); toast('Client deleted'); refresh(); });
+  }
+
+  /* --------------------------- appointment form --------------------------- */
+  function apptForm() {
+    var clientOpts = state.clients.map(function (c) {
+      return '<option value="' + esc(c.Name) + (c.Unit ? ' (Unit ' + esc(c.Unit) + ')' : '') + '">';
+    }).join('');
+    openModal(
+      '<h2>New Appointment</h2>' +
+      '<label>What is it? *</label>' +
+      '<input id="a-title" list="client-list" placeholder="e.g. Move-in: Jane Smith">' +
+      '<datalist id="client-list">' + clientOpts + '</datalist>' +
+      '<div class="two-col">' +
+      '<div><label>Date *</label><input id="a-date" type="date"></div>' +
+      '<div><label>Time</label><input id="a-time" type="time" value="09:00"></div>' +
+      '</div>' +
+      '<div class="two-col">' +
+      '<div><label>How long?</label><select id="a-dur">' +
+      '<option value="30">30 minutes</option><option value="60" selected>1 hour</option>' +
+      '<option value="120">2 hours</option><option value="240">4 hours</option></select></div>' +
+      '<div><label>Remind me</label><select id="a-rem">' +
+      '<option value="30">30 min before</option><option value="60" selected>1 hour before</option>' +
+      '<option value="1440">1 day before</option><option value="2880">2 days before</option></select></div>' +
+      '</div>' +
+      '<label><input type="checkbox" id="a-email" checked style="width:auto;margin-right:8px">Also send me an email reminder</label>' +
+      '<label>Notes</label><textarea id="a-notes"></textarea>' +
+      '<div class="row-btns"><button class="btn-primary" onclick="saveAppt()">💾 Save Appointment</button></div>' +
+      '<div class="row-btns"><button class="btn-plain" onclick="closeModal()">Cancel</button></div>'
+    );
+    // preload clients so the dropdown suggestions work
+    if (!state.clients.length) call('getClients', [], function (r) { state.clients = r; });
+  }
+  function saveAppt() {
+    var title = $('a-title').value.trim();
+    var date = $('a-date').value;
+    if (!title || !date) { alert('Please fill in what it is and the date.'); return; }
+    call('addAppointment', [{
+      title: title, date: date, time: $('a-time').value || '09:00',
+      durationMins: $('a-dur').value, reminderMins: $('a-rem').value,
+      emailReminder: $('a-email').checked, notes: $('a-notes').value.trim()
+    }], function () { closeModal(); toast('Appointment saved ✓'); refresh(); });
+  }
+  function delAppt(id) {
+    if (!confirm('Cancel this appointment?')) return;
+    call('deleteAppointment', [id], function () { toast('Appointment cancelled'); refresh(); });
+  }
+
+  /* hook edit-index tracking into itemForm */
+  var _origItemForm = itemForm;
+  itemForm = function (i) { _editIndex = (i === undefined ? -1 : i); _origItemForm(i); };
+
+  /* --------------------------------- boot --------------------------------- */
+  showTab('inventory');
+</script>

@@ -2,6 +2,11 @@
 
 Express.js server for managing AI agents with Notion memory integration.
 
+> 📦 **Looking for the Storage Inventory app?** See
+> [`storage-inventory/`](storage-inventory/) — a zero-cost Google Apps Script
+> web app (Sheets + Drive + Calendar) with setup instructions in
+> [`storage-inventory/SETUP.md`](storage-inventory/SETUP.md).
+
 ## Fixed Issues
 
 1. **Updated OpenAI SDK usage**: Replaced deprecated `Configuration` and `OpenAIApi` with modern `OpenAI` client (v6.x)
