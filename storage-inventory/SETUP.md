@@ -48,6 +48,10 @@ Google's servers under your Google Business account and costs **$0/month**.
 
 ### Step 4: Run the one-time setup
 
+> 💡 **This step is now optional** — the app also runs setup automatically the
+> first time it's opened. Running it here just lets you see the links to the
+> new spreadsheet in the log and confirm authorization worked.
+
 This creates the Google Sheet, the Drive photo folder, and the calendar
 automatically — you don't have to make anything by hand.
 

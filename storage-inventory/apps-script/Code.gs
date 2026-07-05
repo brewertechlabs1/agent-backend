@@ -65,6 +65,16 @@ function setup() {
   Logger.log('Calendar ID: ' + props.getProperty(PROP_CALENDAR));
 }
 
+/** Runs setup() automatically the first time the web app is opened. */
+function ensureSetup_() {
+  var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty(PROP_SPREADSHEET) ||
+      !props.getProperty(PROP_PHOTO_FOLDER) ||
+      !props.getProperty(PROP_CALENDAR)) {
+    setup();
+  }
+}
+
 function ensureSheet_(ss, name, headers) {
   var sheet = ss.getSheetByName(name);
   if (!sheet) sheet = ss.insertSheet(name);
@@ -80,6 +90,7 @@ function ensureSheet_(ss, name, headers) {
 /* ============================= WEB APP ENTRY ============================== */
 
 function doGet() {
+  ensureSetup_(); // first visit auto-creates the Sheet, Drive folder, and calendar
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle(APP_NAME)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1');
