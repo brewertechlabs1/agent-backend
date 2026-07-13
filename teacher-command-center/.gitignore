@@ -1,0 +1,3 @@
+dist/*
+!dist/Teacher-Command-Center-2026-2027.zip
+__pycache__/
