@@ -1,0 +1,31 @@
+LeadFlow Pro — End User License Agreement (Single Business License)
+
+Copyright (c) 2026. All rights reserved.
+
+WHAT YOU MAY DO
+1. Install and use LeadFlow Pro on computers owned by ONE business (yours).
+2. Use it to capture, store and contact your own leads and customers.
+3. Modify the email templates, settings, and appearance for your own use.
+4. Keep backup copies for your own use.
+
+WHAT YOU MAY NOT DO
+1. Resell, redistribute, share, sublicense, or give away the software or any
+   part of it, whether modified or not.
+2. Include it in another product or service that is sold or distributed.
+3. Remove or alter this license.
+
+EMAIL COMPLIANCE
+You are responsible for complying with the email/SMS marketing laws that
+apply to you (e.g. CAN-SPAM in the US, CASL in Canada, GDPR/ePrivacy in the
+EU). Only email people who contacted your business or gave you permission,
+identify your business truthfully in every message, and honor opt-out
+requests promptly.
+
+NO WARRANTY
+This software is provided "as is", without warranty of any kind, express or
+implied. In no event shall the author be liable for any claim, damages or
+other liability arising from the use of the software. Your data is stored
+locally on your computer — keeping backups of the "data" folder is your
+responsibility.
+
+If you purchased this product, thank you for your business!

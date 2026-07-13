@@ -1,0 +1,6 @@
+# LeadFlow Pro runtime data (leads, settings, outbox) — never commit
+leadflow/app/data/
+leadflow/data/
+
+# packaging staging area (the final zip in dist/ IS committed)
+dist/LeadFlow-Pro/

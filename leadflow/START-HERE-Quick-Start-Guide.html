@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeadFlow Pro — Quick Start Guide</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#1c2333;background:#f4f6fa;margin:0;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding:32px 22px 80px}
+h1{font-size:28px}h2{font-size:20px;margin-top:36px;border-bottom:2px solid #e3e8f0;padding-bottom:6px}
+.card{background:#fff;border:1px solid #e3e8f0;border-radius:10px;padding:20px 24px;margin:16px 0}
+code{background:#eef1f7;border:1px solid #e3e8f0;border-radius:5px;padding:2px 6px;font-size:14px}
+.step{display:flex;gap:14px;margin:14px 0}
+.n{flex:0 0 32px;height:32px;border-radius:50%;background:#1f6feb;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+.tip{background:#e7f0ff;border:1px solid #bcd3ff;border-radius:8px;padding:10px 14px;font-size:14px;margin:12px 0}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #e3e8f0;padding:8px 10px;text-align:left;font-size:14px}
+th{background:#f0f3f8}
+</style>
+</head>
+<body><div class="wrap">
+<h1>🚀 LeadFlow Pro — Quick Start</h1>
+<p><b>Your automated lead machine:</b> captures leads, replies instantly, follows up automatically, books appointments, and alerts you the moment a lead is ready. Everything runs on <b>your own computer</b> — no monthly fees, no cloud account, your customer data never leaves your machine.</p>
+
+<h2>Step 1 — Install Node.js (one time, 2 minutes, free)</h2>
+<div class="card">
+<p>LeadFlow Pro runs on Node.js, a free program from <a href="https://nodejs.org/en/download">nodejs.org/en/download</a>.</p>
+<div class="step"><div class="n">1</div><div>Go to <b>nodejs.org/en/download</b> and download the installer for Windows or Mac.</div></div>
+<div class="step"><div class="n">2</div><div>Run it and click Next → Next → Finish (all default options are fine).</div></div>
+<p>Already have Node.js? Skip to Step 2.</p>
+</div>
+
+<h2>Step 2 — Start LeadFlow Pro</h2>
+<div class="card">
+<p><b>Windows:</b> double-click <code>Start-LeadFlow-WINDOWS.bat</code></p>
+<p><b>Mac:</b> right-click <code>Start-LeadFlow-MAC.command</code> and choose <b>Open</b> (only needed the first time — after that, double-click works).</p>
+<p>A small black window opens (that's the engine — <b>keep it open</b>) and your browser opens the dashboard automatically at <code>http://localhost:4321</code>.</p>
+<div class="tip">💡 If the browser doesn't open by itself, open it manually and go to <b>http://localhost:4321</b></div>
+</div>
+
+<h2>Step 3 — The 60-second setup wizard</h2>
+<div class="card">
+<p>Enter your business name, your email (where lead alerts go), and create a dashboard password. That's it — the system is live and can already capture leads.</p>
+</div>
+
+<h2>Step 4 — Connect your email (recommended, ~2 minutes)</h2>
+<div class="card">
+<p>Until you connect an email account, LeadFlow runs in <b>demo mode</b>: outgoing emails are saved into the <code>data/outbox</code> folder instead of being sent — great for testing safely.</p>
+<p>To send for real, go to <b>Settings → Email Sending</b> in the dashboard. Any normal email account works:</p>
+<table>
+<tr><th>Provider</th><th>SMTP server</th><th>Port</th><th>Note</th></tr>
+<tr><td>Gmail / Google Workspace</td><td>smtp.gmail.com</td><td>587</td><td>Use an <b>App Password</b> (Google Account → Security → 2-Step Verification → App passwords)</td></tr>
+<tr><td>Outlook / Microsoft 365</td><td>smtp.office365.com</td><td>587</td><td>Use your normal login (or app password if MFA)</td></tr>
+<tr><td>Yahoo</td><td>smtp.mail.yahoo.com</td><td>587</td><td>App password required</td></tr>
+<tr><td>Zoho</td><td>smtp.zoho.com</td><td>587</td><td>—</td></tr>
+</table>
+<p>Then click <b>“Save &amp; send me a test email.”</b> When the test lands in your inbox, you're fully automated.</p>
+</div>
+
+<h2>Step 5 — Start collecting leads</h2>
+<div class="card">
+<p>Open <b>Help &amp; Share</b> in the dashboard. You'll find:</p>
+<ul>
+<li><b>Your lead capture form link</b> — put it in your Google Business profile, Facebook page, email signature, QR code on your counter, anywhere.</li>
+<li><b>Your booking page link</b> — customers pick a time, you both get confirmations + calendar invites + automatic reminders.</li>
+<li><b>Embed code</b> — paste one line into your website to show the form there.</li>
+</ul>
+</div>
+
+<h2>What happens automatically</h2>
+<div class="card">
+<ul>
+<li>⚡ <b>Instant response:</b> every lead gets a friendly reply within seconds — with your booking link.</li>
+<li>📨 <b>Follow-up sequence:</b> no booking? They're followed up at 1 day, 3 days and 7 days (fully editable in Settings).</li>
+<li>🛑 <b>Smart stop:</b> emails stop the moment a lead books, or you mark them won or lost.</li>
+<li>🔔 <b>Owner alerts:</b> you get an email the instant a lead arrives or books — call them while they're hot.</li>
+<li>📅 <b>Reminders:</b> booked customers get an automatic reminder 24 hours before their appointment.</li>
+<li>♻️ <b>Old-lead revival:</b> import your old customer list (CSV) on the Campaigns page and launch a re-engagement sequence any time.</li>
+</ul>
+</div>
+
+<h2>Keeping it running</h2>
+<div class="card">
+<p>Automation runs while the app window is open. For a set-and-forget setup, make it start with your computer:</p>
+<p><b>Windows:</b> press <code>Win + R</code>, type <code>shell:startup</code>, press Enter, and copy a shortcut to <code>Start-LeadFlow-WINDOWS.bat</code> into that folder.</p>
+<p><b>Mac:</b> System Settings → General → Login Items → “+” → choose <code>Start-LeadFlow-MAC.command</code>.</p>
+</div>
+
+<h2>Backups &amp; moving computers</h2>
+<div class="card">
+<p>All your leads, appointments and settings live in the <code>data</code> folder inside the LeadFlow folder. Copy that folder to a USB stick or cloud drive to back up; copy it back to restore. To move to a new computer, move the whole LeadFlow folder.</p>
+</div>
+
+<h2>Troubleshooting</h2>
+<div class="card">
+<p><b>“Node.js is not installed”</b> — do Step 1, then start again.</p>
+<p><b>Page won't load</b> — make sure the black app window is still open; go to <code>http://localhost:4321</code>.</p>
+<p><b>Port already in use</b> — another program uses port 4321. Start from a terminal with a different port: <code>PORT=4500 node app/server.js</code> (Mac) or <code>set PORT=4500 &amp;&amp; node app\server.js</code> (Windows).</p>
+<p><b>Test email fails</b> — re-check server, port, username, and use an app password (not your regular password) for Gmail/Yahoo.</p>
+<p><b>Emails land in spam</b> — send from a real mailbox you own (Gmail/Outlook), keep the “From” email identical to the account you log in with.</p>
+<p><b>Forgot your dashboard password</b> — close the app, open <code>data/settings.json</code> in Notepad (Windows) or TextEdit (Mac), delete the whole line that starts with <code>"passwordHash"</code>, save the file, and start the app again. It will ask you to set a new password. (This requires access to the computer itself, so strangers can't do it remotely.)</p>
+</div>
+</div></body>
+</html>
