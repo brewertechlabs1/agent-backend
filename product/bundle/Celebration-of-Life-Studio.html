@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celebration of Life Studio</title>
+<style>
+/* ============================================================
+   CELEBRATION OF LIFE STUDIO — self-contained, works offline
+   ============================================================ */
+:root{
+  --ui-bg:#f4f2ee; --ui-panel:#ffffff; --ui-ink:#33302b; --ui-line:#e2ddd4;
+  --ui-accent:#7a6a52; --ui-accent-dark:#5d5040; --ui-soft:#faf8f4;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:Georgia,'Times New Roman',serif;
+  background:var(--ui-bg); color:var(--ui-ink);
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{
+  font-family:inherit; font-size:15px; color:var(--ui-ink);
+  width:100%; padding:9px 10px; border:1px solid var(--ui-line);
+  border-radius:8px; background:#fff;
+}
+textarea{resize:vertical; line-height:1.5;}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--ui-accent); outline-offset:1px;}
+label{display:block; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; color:#8a8272; margin:14px 0 5px;}
+label small{text-transform:none; letter-spacing:0; color:#a09a8c;}
+
+/* ---------- App bar ---------- */
+.appbar{
+  position:sticky; top:0; z-index:50;
+  background:var(--ui-accent-dark); color:#f6f2ea;
+  padding:10px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+}
+.appbar h1{font-size:17px; font-weight:normal; letter-spacing:.04em; white-space:nowrap;}
+.appbar h1 em{font-style:italic; opacity:.85;}
+.appbar .grow{flex:1;}
+.btn{
+  border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08);
+  color:#f6f2ea; padding:8px 14px; border-radius:20px; font-size:13.5px;
+}
+.btn:hover{background:rgba(255,255,255,.18);}
+.btn.primary{background:#f6f2ea; color:var(--ui-accent-dark); border-color:#f6f2ea; font-weight:bold;}
+.btn.primary:hover{background:#fff;}
+label.btn{text-transform:none; letter-spacing:normal; color:#f6f2ea; font-size:13.5px; margin:0; width:auto;}
+
+/* ---------- Layout ---------- */
+.wrap{display:flex; align-items:stretch; min-height:calc(100vh - 54px);}
+.side{
+  width:390px; min-width:390px; background:var(--ui-panel);
+  border-right:1px solid var(--ui-line); padding:18px 20px 60px;
+  overflow-y:auto; max-height:calc(100vh - 54px); position:sticky; top:54px;
+}
+.stage{flex:1; padding:26px 18px 80px; display:flex; flex-direction:column; align-items:center; gap:10px; overflow-x:hidden;}
+
+.section{border:1px solid var(--ui-line); border-radius:12px; margin-bottom:14px; background:#fff; overflow:hidden;}
+.section > h2{
+  font-size:14px; padding:12px 14px; cursor:pointer; user-select:none;
+  background:var(--ui-soft); letter-spacing:.03em; display:flex; align-items:center;
+}
+.section > h2::before{content:"▸"; margin-right:8px; color:var(--ui-accent); transition:transform .15s;}
+.section.open > h2::before{transform:rotate(90deg);}
+.section .inner{display:none; padding:2px 14px 16px;}
+.section.open .inner{display:block;}
+.hint{font-size:12.5px; color:#96907f; line-height:1.5; margin-top:6px; font-style:italic;}
+
+/* Theme picker */
+.themes{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;}
+.theme-card{
+  border:2px solid var(--ui-line); border-radius:10px; padding:10px 8px 8px;
+  text-align:center; cursor:pointer; background:#fff; font-size:12.5px; line-height:1.3;
+}
+.theme-card .swatch{display:flex; height:16px; border-radius:6px; overflow:hidden; margin-bottom:7px;}
+.theme-card .swatch i{flex:1;}
+.theme-card.sel{border-color:var(--ui-accent-dark); background:var(--ui-soft); font-weight:bold;}
+
+/* Document picker */
+.docs{display:flex; flex-direction:column; gap:6px; margin-top:8px;}
+.doc-btn{
+  text-align:left; border:1.5px solid var(--ui-line); background:#fff; border-radius:10px;
+  padding:10px 12px; font-size:14px; display:flex; gap:10px; align-items:center;
+}
+.doc-btn .ic{font-size:17px; width:24px; text-align:center;}
+.doc-btn.sel{border-color:var(--ui-accent-dark); background:var(--ui-soft); font-weight:bold;}
+.doc-btn small{display:block; font-weight:normal; color:#96907f; font-size:11.5px;}
+
+.photo-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.photo-row .thumb{
+  width:54px; height:54px; border-radius:8px; object-fit:cover; border:1px solid var(--ui-line);
+  position:relative;
+}
+.thumb-box{position:relative;}
+.thumb-box b{
+  position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%;
+  background:#b3403f; color:#fff; font-size:11px; line-height:18px; text-align:center; cursor:pointer;
+}
+.filebtn{
+  display:inline-block; border:1.5px dashed var(--ui-accent); color:var(--ui-accent-dark);
+  border-radius:10px; padding:9px 14px; font-size:13.5px; cursor:pointer; background:var(--ui-soft); margin-top:6px;
+}
+.filebtn input{display:none;}
+
+/* Stage notes */
+.stagenote{
+  max-width:820px; width:100%; background:#fdfbf6; border:1px solid var(--ui-line);
+  border-left:4px solid var(--ui-accent); border-radius:8px; padding:12px 16px;
+  font-size:13.5px; line-height:1.55; color:#6d6553;
+}
+.stagenote b{color:var(--ui-accent-dark);}
+
+/* ---------- Paper / sheets ---------- */
+#paperScale{transform-origin:top center;}
+.sheet{
+  background:#fff; box-shadow:0 3px 18px rgba(60,50,30,.18);
+  margin:0 auto 24px; position:relative; overflow:hidden;
+  display:flex;
+}
+.sheet.land{width:11in; height:8.5in;}
+.sheet.port{width:8.5in; height:11in; flex-direction:column;}
+.sheet.sq{width:7in; height:7in;}
+.sheet-tag{
+  position:absolute; top:-0; left:0; right:0; text-align:center; font-size:10px;
+  color:#b7b0a1; letter-spacing:.12em; text-transform:uppercase; padding-top:3px;
+}
+.panel{width:5.5in; height:8.5in; padding:.45in .5in; position:relative; display:flex; flex-direction:column; overflow:hidden;}
+.panel + .panel{border-left:1px dashed #ddd;}
+
+/* Shared document typography — driven by theme variables */
+.paper{--ink:#333; --accent:#7a6a52; --soft:#f7f3ea; --accent2:#7a6a52;}
+.doc{color:var(--ink); font-family:Georgia,'Palatino Linotype',Palatino,serif;}
+.doc .script{font-family:'Snell Roundhand','Savoye LET','Brush Script MT','Segoe Script',cursive; font-style:italic; color:var(--accent);}
+.doc .caps{letter-spacing:.22em; text-transform:uppercase; font-size:10.5pt;}
+.doc .rule{display:flex; align-items:center; gap:10px; margin:10px 0;}
+.doc .rule::before,.doc .rule::after{content:""; flex:1; border-top:1px solid var(--accent); opacity:.55;}
+.doc h3.sect{
+  text-align:center; letter-spacing:.2em; text-transform:uppercase; font-size:12pt;
+  color:var(--accent2); margin-bottom:8px; font-weight:normal;
+}
+.fit{overflow:hidden; min-height:0;} /* min-height:0 keeps flex children clamped so overflow is measurable */
+.center{text-align:center;}
+.photo-frame{
+  width:2.5in; height:3.1in; margin:0 auto; overflow:hidden; background:var(--soft);
+  border:3px solid var(--accent); border-radius:50% 50% 4px 4px / 38% 38% 4px 4px;
+}
+.photo-frame.round{width:2.4in; height:2.4in; border-radius:50%;}
+.photo-frame img{width:100%; height:100%; object-fit:cover; display:block;}
+.ornament{text-align:center; line-height:0;}
+.ornament svg{max-width:100%;}
+.smallcaps{font-variant:small-caps;}
+
+/* Prayer cards & invites cut guides */
+.cutgrid{display:grid; margin:auto;}
+.cutcell{border:1px dashed #c9c2b4; overflow:hidden; position:relative; display:flex; flex-direction:column;}
+
+/* Collage */
+.collage{display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:1fr; gap:.12in; flex:1;}
+.collage .cph{overflow:hidden; border-radius:4px; background:var(--soft); border:1px solid var(--accent);}
+.collage .cph img{width:100%; height:100%; object-fit:cover; display:block;}
+.collage .cph.big{grid-column:span 2; grid-row:span 2;}
+
+/* Slideshow overlay */
+#slideshow{
+  position:fixed; inset:0; background:#000; z-index:200; display:none;
+  align-items:center; justify-content:center;
+}
+#slideshow.on{display:flex;}
+#slideshow img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+  opacity:0; transition:opacity 1.6s ease;
+}
+#slideshow img.show{opacity:1;}
+#slideshow .cap{
+  position:absolute; bottom:5vh; left:0; right:0; text-align:center; color:#fff;
+  font-size:3.4vh; letter-spacing:.08em; text-shadow:0 2px 12px #000; z-index:5;
+}
+#slideshow .cap small{display:block; font-size:2vh; opacity:.8; margin-top:.6vh;}
+#slideshow .exit{
+  position:absolute; top:16px; right:20px; z-index:6; background:rgba(255,255,255,.15);
+  color:#fff; border:1px solid rgba(255,255,255,.4); border-radius:18px; padding:7px 16px;
+}
+
+/* Mobile */
+.mobtabs{display:none;}
+@media (max-width:900px){
+  .wrap{flex-direction:column;}
+  .side{width:100%; min-width:0; max-height:none; position:static; border-right:none; display:none;}
+  body.tab-edit .side{display:block;}
+  body.tab-edit .stage{display:none;}
+  .mobtabs{
+    display:flex; position:sticky; top:54px; z-index:49; background:#fff; border-bottom:1px solid var(--ui-line);
+  }
+  .mobtabs button{flex:1; padding:12px; border:none; background:#fff; font-size:14px; color:#8a8272;}
+  .mobtabs button.on{color:var(--ui-accent-dark); font-weight:bold; box-shadow:inset 0 -3px var(--ui-accent-dark);}
+  .stage{padding:16px 6px 80px;}
+}
+
+/* ---------- PRINT ---------- */
+@media print{
+  .appbar,.side,.mobtabs,.stagenote,.sheet-tag,.no-print{display:none !important;}
+  body{background:#fff;}
+  .wrap{display:block; min-height:0;}
+  .stage{padding:0; display:block;}
+  #paperScale{transform:none !important;}
+  .sheet{box-shadow:none; margin:0; page-break-after:always; break-after:page;}
+  .sheet:last-child{page-break-after:auto; break-after:auto;}
+  .panel + .panel{border-left:none;}
+}
+</style>
+</head>
+<body class="tab-edit">
+
+<header class="appbar">
+  <h1>Celebration of Life <em>Studio</em></h1>
+  <span class="grow"></span>
+  <button class="btn" id="btnSample" title="Fill everything with an example so you can see how it works">See an Example</button>
+  <button class="btn" id="btnExport" title="Save a backup file of everything you typed">Save Backup</button>
+  <label class="btn" style="display:inline-block" title="Load a backup file">Load Backup<input type="file" id="importFile" accept=".json" style="display:none"></label>
+  <button class="btn primary" id="btnPrint">🖨 Print / Save as PDF</button>
+</header>
+
+<div class="mobtabs no-print">
+  <button id="tabEdit" class="on">✏️ Edit Details</button>
+  <button id="tabPrev">👁 Preview</button>
+</div>
+
+<div class="wrap">
+<!-- ======================= FORM ======================= -->
+<aside class="side no-print">
+
+  <div class="section open" id="secTheme">
+    <h2>1 · Choose a Theme</h2>
+    <div class="inner"><div class="themes" id="themeGrid"></div></div>
+  </div>
+
+  <div class="section open" id="secDoc">
+    <h2>2 · Choose What to Create</h2>
+    <div class="inner"><div class="docs" id="docList"></div></div>
+  </div>
+
+  <div class="section open">
+    <h2>3 · Their Name &amp; Dates</h2>
+    <div class="inner">
+      <label>Full name</label><input id="f_name" placeholder="Eleanor Mae Johnson">
+      <label>Nickname / known as <small>(optional)</small></label><input id="f_nick" placeholder='“Ellie”'>
+      <label>Date of birth (Sunrise)</label><input id="f_born" placeholder="March 4, 1941">
+      <label>Date of passing (Sunset)</label><input id="f_died" placeholder="June 28, 2026">
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>4 · Photos</h2>
+    <div class="inner">
+      <label>Main portrait photo</label>
+      <label class="filebtn">＋ Choose portrait photo<input type="file" id="f_portrait" accept="image/*"></label>
+      <div class="photo-row" id="portraitRow"></div>
+      <label>More photos <small>(for the collage &amp; slideshow — add as many as you like)</small></label>
+      <label class="filebtn">＋ Add photos<input type="file" id="f_gallery" accept="image/*" multiple></label>
+      <div class="photo-row" id="galleryRow"></div>
+      <p class="hint">Photos never leave this device — everything works privately, right in this file.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>5 · Service Details</h2>
+    <div class="inner">
+      <label>Service date</label><input id="f_sdate" placeholder="Saturday, July 11, 2026">
+      <label>Service time</label><input id="f_stime" placeholder="11:00 in the morning">
+      <label>Location name</label><input id="f_svenue" placeholder="Grace Community Church">
+      <label>Location address</label><input id="f_saddr" placeholder="1200 Chapel Hill Road · Marietta, Georgia">
+      <label>Officiated by</label><input id="f_officiant" placeholder="Reverend Samuel T. Brooks">
+      <label>Interment / final resting place <small>(optional)</small></label><input id="f_interment" placeholder="Rosewood Memorial Gardens">
+      <label>Reception / repast <small>(optional)</small></label><input id="f_repast" placeholder="The family invites you to a repast in the church fellowship hall immediately following the service.">
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>6 · Order of Service</h2>
+    <div class="inner">
+      <label>One line per item <small>— use “—” to add a name</small></label>
+      <textarea id="f_order" rows="10"></textarea>
+      <p class="hint">Edit freely: add hymns, tributes, readings, military honors — anything.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>7 · Obituary / Life Story</h2>
+    <div class="inner">
+      <label>Obituary text <small>(blank line between paragraphs)</small></label>
+      <textarea id="f_obit" rows="12" placeholder="Not sure where to start? Open the Obituary Writing Prompts guide included in your download — it walks you through it, question by question."></textarea>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>8 · Poem, Verse &amp; Thanks</h2>
+    <div class="inner">
+      <label>Poem or scripture</label>
+      <select id="f_poemKey"></select>
+      <textarea id="f_poemCustom" rows="6" style="display:none; margin-top:6px" placeholder="Type or paste your own poem or verse…"></textarea>
+      <label>Prayer-card verse</label>
+      <select id="f_cardKey"></select>
+      <textarea id="f_cardCustom" rows="4" style="display:none; margin-top:6px" placeholder="Type your own short verse…"></textarea>
+      <label>Pallbearers <small>(one per line, optional)</small></label>
+      <textarea id="f_pallbearers" rows="4"></textarea>
+      <label>Acknowledgment from the family</label>
+      <textarea id="f_ack" rows="4"></textarea>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>9 · Invitation &amp; Announcement</h2>
+    <div class="inner">
+      <label>Invitation message</label>
+      <textarea id="f_invMsg" rows="3"></textarea>
+      <label>RSVP / contact line <small>(optional)</small></label>
+      <input id="f_rsvp" placeholder="Kindly RSVP to Denise at (404) 555-0182">
+      <label>Livestream link <small>(optional)</small></label>
+      <input id="f_stream" placeholder="Watch online: gracechurch.org/live">
+    </div>
+  </div>
+
+  <p class="hint" style="margin:4px 2px 30px">💾 Your work is saved automatically on this device as you type. Use <b>Save Backup</b> to keep a copy or move to another device.</p>
+</aside>
+
+<!-- ======================= PREVIEW ======================= -->
+<main class="stage">
+  <div class="stagenote no-print" id="docNote"></div>
+  <div id="paperScale"><div id="paper" class="paper"></div></div>
+</main>
+</div>
+
+<!-- Slideshow overlay -->
+<div id="slideshow">
+  <button class="exit no-print" onclick="stopSlideshow()">✕ Exit (Esc)</button>
+  <div class="cap" id="ssCap"></div>
+</div>
+
+<style id="pageStyle"></style>
+
+<script>
+'use strict';
+/* =====================================================================
+   DATA
+===================================================================== */
+const LS_KEY='colStudio.v1';
+
+const POEMS={
+  ps23:{t:'Psalm 23 (The Lord Is My Shepherd)',x:`The Lord is my shepherd; I shall not want.\nHe maketh me to lie down in green pastures:\nhe leadeth me beside the still waters.\nHe restoreth my soul: he leadeth me in the paths\nof righteousness for his name's sake.\nYea, though I walk through the valley of the shadow of death,\nI will fear no evil: for thou art with me;\nthy rod and thy staff they comfort me.\nSurely goodness and mercy shall follow me\nall the days of my life: and I will dwell\nin the house of the Lord for ever.`},
+  jn14:{t:'John 14:1–3 (Let Not Your Heart Be Troubled)',x:`Let not your heart be troubled: ye believe in God, believe also in me.\nIn my Father's house are many mansions: if it were not so, I would have told you.\nI go to prepare a place for you.\nAnd if I go and prepare a place for you, I will come again,\nand receive you unto myself; that where I am, there ye may be also.`},
+  frye:{t:'Do Not Stand at My Grave and Weep',x:`Do not stand at my grave and weep,\nI am not there, I do not sleep.\nI am a thousand winds that blow,\nI am the diamond glints on snow.\nI am the sunlight on ripened grain,\nI am the gentle autumn rain.\nWhen you awaken in the morning's hush,\nI am the swift uplifting rush\nof quiet birds in circled flight.\nI am the soft stars that shine at night.\nDo not stand at my grave and cry;\nI am not there, I did not die.`},
+  holland:{t:'Death Is Nothing at All',x:`Death is nothing at all.\nI have only slipped away into the next room.\nI am I, and you are you.\nWhatever we were to each other, that we are still.\nCall me by my old familiar name,\nspeak of me in the easy way which you always used.\nLaugh as we always laughed at the little jokes we enjoyed together.\nLet my name be ever the household word that it always was.\nLife means all that it ever meant.\nIt is the same as it ever was.\nWhy should I be out of mind because I am out of sight?\nI am but waiting for you, for an interval,\nsomewhere very near, just round the corner.\nAll is well.`},
+  tennyson:{t:'Crossing the Bar (Tennyson)',x:`Sunset and evening star,\nAnd one clear call for me!\nAnd may there be no moaning of the bar,\nWhen I put out to sea.\n\nTwilight and evening bell,\nAnd after that the dark!\nAnd may there be no sadness of farewell,\nWhen I embark;\n\nFor tho' from out our bourne of Time and Place\nThe flood may bear me far,\nI hope to see my Pilot face to face\nWhen I have crost the bar.`},
+  ship:{t:'Gone From My Sight (The Ship)',x:`I am standing upon the seashore.\nA ship at my side spreads her white sails to the morning breeze\nand starts for the blue ocean.\nShe is an object of beauty and strength,\nand I stand and watch her until at length she is only\na ribbon of white cloud just where the sea and sky meet.\nThen someone at my side says, “There, she is gone!”\nGone where? Gone from my sight — that is all.\nAnd just at the moment when someone says, “There, she is gone!”\nthere are other eyes watching her coming,\nand other voices ready to take up the glad shout,\n“Here she comes!”`},
+  cardinal:{t:'When a Cardinal Appears',x:`A cardinal is a representative of a loved one who has passed.\nWhen you see one, it means they are visiting you.\nThey usually show up when you most need them\nor miss them the most.\nThey come to let you know\nthey will always be with you.`},
+  salute:{t:'The Final Salute (for a Veteran)',x:`Duty called, and you answered,\nwith courage, faith, and pride.\nYou stood the watch for all of us —\nour flag flew by your side.\nThe bugle sounds, the colors fold,\nyour tour of duty done.\nRest easy now, brave soldier —\nyour final rank is won.`},
+  garden:{t:"God's Garden",x:`God looked around His garden and found an empty place.\nHe then looked down upon the earth and saw your tired face.\nHe put His arms around you and lifted you to rest.\nGod's garden must be beautiful — He always takes the best.`},
+  custom:{t:'✏️ Write my own…',x:''}
+};
+const CARD_VERSES={
+  ps23s:{t:'Psalm 23 (short)',x:`The Lord is my shepherd; I shall not want.\nHe maketh me to lie down in green pastures:\nhe leadeth me beside the still waters.\nHe restoreth my soul.\nSurely goodness and mercy shall follow me\nall the days of my life: and I will dwell\nin the house of the Lord for ever.`},
+  jn11:{t:'John 11:25',x:`“I am the resurrection, and the life:\nhe that believeth in me,\nthough he were dead,\nyet shall he live.”`},
+  hearts:{t:'Forever in Our Hearts',x:`Those we love don't go away,\nthey walk beside us every day —\nunseen, unheard, but always near,\nstill loved, still missed, and very dear.`},
+  cardinal:{t:'Cardinal blessing',x:`Cardinals appear\nwhen angels are near.\nWhenever one visits you,\nknow that love is watching over you.`},
+  taps:{t:'Veteran — Day Is Done (Taps)',x:`Day is done, gone the sun,\nfrom the lake, from the hills, from the sky.\nAll is well, safely rest —\nGod is nigh.`},
+  sea:{t:'Beach — The Tide Returns',x:`Every wave that kisses the shore\nreturns again to the sea.\nSo love once given never leaves —\nit returns, eternally.`},
+  custom:{t:'✏️ Write my own…',x:''}
+};
+
+/* ---------- Theme ornaments (inline SVG) ---------- */
+const svgOpen=(w,h)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="100%" style="display:block">`;
+const ORN={
+  cross:s=>`${svgOpen(120,120)}<g fill="none" stroke="${s.a}" stroke-width="3"><circle cx="60" cy="60" r="44" opacity=".35"/><g stroke-linecap="round">${[0,30,60,120,150,210,240,300,330].map(d=>`<line x1="60" y1="6" x2="60" y2="14" transform="rotate(${d} 60 60)" opacity=".5"/>`).join('')}</g></g><g fill="${s.a}"><rect x="55" y="26" width="10" height="66" rx="2"/><rect x="38" y="43" width="44" height="10" rx="2"/></g><path d="M60 96q-14-8-20-2 8 8 20 4 12 4 20-4-6-6-20 2z" fill="${s.b}" opacity=".9"/></svg>`,
+  military:s=>`${svgOpen(140,120)}<path d="M70 12l10.8 22 24.2 3.5-17.5 17 4.1 24.1L70 67.2 48.4 78.6l4.1-24.1L35 37.5 59.2 34z" fill="${s.b}"/><g stroke-width="6" fill="none" stroke-linecap="round"><path d="M18 96q52-22 104 0" stroke="${s.a}"/><path d="M22 106q48-18 96 0" stroke="#b22234"/></g></svg>`,
+  rose:s=>`${svgOpen(140,110)}<g fill="none" stroke="${s.a}" stroke-width="2.5" stroke-linecap="round"><path d="M70 58c-9-2-13-10-9-18 4 8 10 9 9 18zm0 0c9-2 13-10 9-18-4 8-10 9-9 18zm0 0c-2-9 3-16 12-16-5 7-3 13-12 16zm0 0c2-9-3-16-12-16 5 7 3 13 12 16z"/><circle cx="70" cy="52" r="5" fill="${s.a}"/><path d="M70 62v26M70 74c-8-2-14 2-16 8 8 2 14-2 16-8zm0 6c8-2 14 2 16 8-8 2-14-2-16-8z" stroke="${s.b}"/><path d="M34 88c10-10 24-14 36-14M106 88c-10-10-24-14-36-14" opacity=".55" stroke="${s.b}"/></g></svg>`,
+  oak:s=>`${svgOpen(150,100)}<g fill="${s.a}"><path d="M75 14c3 12 12 18 22 18-4 6-10 9-16 9 6 5 14 6 21 3-2 7-8 12-16 12 5 4 12 5 18 3-4 9-13 13-24 11l-5-1-5 1c-11 2-20-2-24-11 6 2 13 1 18-3-8 0-14-5-16-12 7 3 15 2 21-3-6 0-12-3-16-9 10 0 19-6 22-18z"/><rect x="72.5" y="62" width="5" height="18" rx="2" fill="${s.b}"/></g><g stroke="${s.b}" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".7"><path d="M20 88q55-14 110 0"/></g></svg>`,
+  window:s=>`${svgOpen(120,140)}<path d="M24 132V56q0-36 36-40 36 4 36 40v76z" fill="none" stroke="${s.a}" stroke-width="4"/><path d="M36 132V60q0-24 24-28 24 4 24 28v72z" fill="${s.b}" opacity=".25"/><g stroke="${s.a}" stroke-width="2.5"><line x1="60" y1="30" x2="60" y2="132"/><line x1="36" y1="76" x2="84" y2="76"/><line x1="36" y1="104" x2="84" y2="104"/></g><circle cx="60" cy="52" r="8" fill="${s.b}"/></svg>`,
+  cardinal:s=>`${svgOpen(150,120)}<g stroke="#6d5843" stroke-width="3.5" fill="none" stroke-linecap="round"><path d="M8 96q40 8 72 2t62-14"/><path d="M34 98q-6 10-16 12M108 88q4 10 14 13"/></g><g><path d="M74 84c-16 0-26-10-26-24 0-8 4-15 10-19l-4-12 12 7c3-1 6-2 8-2l8-14 3 15c9 4 15 13 15 23 0 15-11 26-26 26z" fill="${s.a}"/><path d="M85 35l3 15c-6-3-13-3-19 0l12-15z" fill="${s.a}"/><path d="M62 52c3-5 9-8 14-8l-6-10-10 6z" fill="#3a2a28"/><circle cx="79" cy="50" r="2.6" fill="#fff"/><circle cx="79.6" cy="50" r="1.4" fill="#26201f"/><path d="M92 52l12 3-12 4c1.5-2.3 1.5-4.7 0-7z" fill="#e8a33d"/><path d="M55 74q-10 8-8 20 10-2 14-14" fill="${s.a}"/></g></svg>`,
+  beach:s=>`${svgOpen(150,110)}<circle cx="75" cy="44" r="17" fill="${s.b}" opacity=".9"/><g stroke="${s.b}" stroke-width="3" stroke-linecap="round" opacity=".8">${[0,30,60,90,120,150,180,210,240,270,300,330].map(d=>`<line x1="75" y1="20" x2="75" y2="14" transform="rotate(${d} 75 44)"/>`).join('')}</g><g fill="none" stroke="${s.a}" stroke-width="4" stroke-linecap="round"><path d="M12 78q16-10 32 0t32 0 32 0 30 0"/><path d="M22 92q14-8 28 0t28 0 28 0 24 0" opacity=".6"/></g><g stroke="${s.a}" stroke-width="2" fill="none"><path d="M40 64q-3-9 5-12 8-3 11 5 2 7-8 10z" opacity=".7"/></g></svg>`,
+  dove:s=>`${svgOpen(140,100)}<g fill="${s.a}"><path d="M58 62c-20 4-34-2-44-14 14 2 24 0 32-6-8-2-13-6-16-12 10 3 19 2 26-2 6-4 14-5 21-2l25-12-9 17c6 8 6 18-1 26-8 9-21 12-34 5z"/><path d="M96 26l14-3-8 11z" fill="${s.b}"/></g><path d="M30 88q40 10 80-4" stroke="${s.b}" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".6"/></svg>`
+};
+
+const THEMES={
+  christian:{name:'Christian Memorial', ink:'#33302a', accent:'#8a6d3b', accent2:'#6f5730', soft:'#f8f4ea',
+    motif:'cross', poem:'ps23', card:'jn11', tag:"In God's Loving Care",
+    epitaph:'“I have fought a good fight, I have finished my course, I have kept the faith.” — 2 Timothy 4:7'},
+  military:{name:'Military Veteran', ink:'#1f2a44', accent:'#1f2a44', accent2:'#b22234', soft:'#eef1f7',
+    motif:'military', poem:'salute', card:'taps', tag:'With Honor and Gratitude',
+    epitaph:'A grateful nation honors a life of service and sacrifice.'},
+  mother:{name:'Mother / Grandmother', ink:'#4a3b41', accent:'#b96a79', accent2:'#96505f', soft:'#faf1f3',
+    motif:'rose', poem:'garden', card:'hearts', tag:'A Life Beautifully Lived',
+    epitaph:'“Her children arise up, and call her blessed.” — Proverbs 31:28'},
+  father:{name:'Father / Grandfather', ink:'#2c3547', accent:'#8c6a3f', accent2:'#2c3547', soft:'#f3f0e9',
+    motif:'oak', poem:'holland', card:'hearts', tag:'A Life of Strength and Love',
+    epitaph:'Strong roots, quiet strength, endless love.'},
+  church:{name:'Church Funeral', ink:'#3a2d4d', accent:'#6c548f', accent2:'#a8842f', soft:'#f5f1fa',
+    motif:'window', poem:'jn14', card:'ps23s', tag:'A Homegoing Celebration',
+    epitaph:'“Well done, thou good and faithful servant… enter thou into the joy of thy lord.” — Matthew 25:21'},
+  cardinal:{name:'Red Cardinal', ink:'#372b2b', accent:'#a32638', accent2:'#7c1d2c', soft:'#faf1ef',
+    motif:'cardinal', poem:'cardinal', card:'cardinal', tag:'Always Near',
+    epitaph:'Cardinals appear when angels are near.'},
+  beach:{name:'Beach / Nature', ink:'#23424a', accent:'#3e93a5', accent2:'#b09155', soft:'#eef6f7',
+    motif:'beach', poem:'ship', card:'sea', tag:'At Peace with the Tide',
+    epitaph:'Gone from our sight, but never from our hearts.'}
+};
+
+const DOCS=[
+  {id:'program4', ic:'📖', name:'Funeral Program — 4 pages', sub:'Classic single-fold booklet (most popular)',
+   page:'letter landscape',
+   note:'<b>4-Page Program.</b> Prints on <b>2 sides of 1 sheet</b> of Letter paper, then folds in half. Print double-sided (“flip on short edge”), or print sheet 1, re-insert the paper, and print sheet 2 on the back. Fold down the middle — done. Cardstock (65 lb) looks best.'},
+  {id:'program8', ic:'📚', name:'Funeral Program — 8 pages', sub:'Extended booklet with photos & full obituary',
+   page:'letter landscape',
+   note:'<b>8-Page Program.</b> Prints on <b>2 sheets, both sides</b> (“flip on short edge”). Keep the sheets in the printed order, stack them, fold together down the middle, and staple twice on the fold if you like.'},
+  {id:'invite', ic:'💌', name:'Memorial Invitation', sub:'Two 7×5″ cards per sheet',
+   page:'letter portrait',
+   note:'<b>Memorial Invitation.</b> Two identical 7×5″ cards print per Letter sheet — cut along the dashed lines. Fits standard A7 (5¼×7¼″) envelopes. You can also save it as a PDF and text or email it.'},
+  {id:'social', ic:'📱', name:'Social Media Announcement', sub:'Square image for Facebook / Instagram / WhatsApp',
+   page:'letter portrait',
+   note:'<b>Social Media Announcement.</b> Click the <b>Download Image</b> button below the preview to save a high-quality square image (1080×1080) ready to post on Facebook, Instagram, or send in a group chat.'},
+  {id:'sign', ic:'🪧', name:'Welcome Sign', sub:'For an easel or table at the entrance',
+   page:'letter portrait',
+   note:'<b>Welcome Sign.</b> Prints beautifully on Letter paper for a tabletop frame. For a large easel sign, save as PDF and ask any print shop (FedEx Office, Staples, UPS Store) to print it at <b>18×24″</b> — it scales perfectly.'},
+  {id:'cards', ic:'🙏', name:'Prayer Cards', sub:'6 keepsake cards per sheet, front & back',
+   page:'letter portrait',
+   note:'<b>Prayer Cards.</b> Sheet 1 is the fronts, sheet 2 is the matching backs. Print double-sided (“flip on long edge”) on cardstock, then cut along the dashed lines for six 2½×4¼″ keepsake cards. Single-sided fronts alone work too.'},
+  {id:'collage', ic:'🖼', name:'Photo Collage', sub:'A memory board / keepsake page',
+   page:'letter portrait',
+   note:'<b>Photo Collage.</b> Add photos in section 4 and they fill the collage automatically. Print on Letter for framing, or have a print shop enlarge the PDF to poster size for the memory table.'},
+  {id:'slideshow', ic:'🎞', name:'Photo Slideshow', sub:'Plays full-screen at the service',
+   page:'letter portrait',
+   note:'<b>Photo Slideshow.</b> Add photos in section 4, then press <b>Start Slideshow</b> below the preview. Connect this device to the venue TV or projector and let it play — photos fade gently with their name and dates on screen. Press Esc to exit.'}
+];
+
+/* =====================================================================
+   STATE
+===================================================================== */
+const DEFAULTS={
+  theme:'christian', doc:'program4',
+  name:'', nick:'', born:'', died:'',
+  sdate:'', stime:'', svenue:'', saddr:'', officiant:'', interment:'', repast:'',
+  order:`Musical Prelude\nProcessional — Clergy and Family\nOpening Prayer\nScripture Reading — Old Testament\nScripture Reading — New Testament\nSelection — Choir\nReflections — Family and Friends (2 minutes, please)\nReading of the Obituary\nSelection — Choir\nWords of Comfort\nRecessional`,
+  obit:'',
+  poemKey:'', poemCustom:'', cardKey:'', cardCustom:'',
+  pallbearers:'',
+  ack:`The family wishes to express their heartfelt gratitude for every prayer, phone call, visit, and act of kindness shown during this time. Your love has carried us, and we are forever thankful. May God bless each of you.`,
+  invMsg:`Please join us as we celebrate a life beautifully lived. Your presence would honor our family.`,
+  rsvp:'', stream:'',
+  portrait:'', gallery:[]
+};
+const freshState=()=>JSON.parse(JSON.stringify(DEFAULTS));
+let S=freshState();
+
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+  catch(e){ // photos can exceed device storage — keep text at least
+    try{ const t=Object.assign({},S,{portrait:'',gallery:[]}); localStorage.setItem(LS_KEY, JSON.stringify(t)); }catch(_){}
+  }
+}
+function load(){
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw) S=Object.assign(freshState(),JSON.parse(raw)); }catch(e){}
+}
+
+/* =====================================================================
+   HELPERS
+===================================================================== */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const paras=t=>String(t||'').split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean);
+const lines=t=>String(t||'').split('\n').map(l=>l.trim()).filter(Boolean);
+const theme=()=>THEMES[S.theme];
+const nickHtml=()=>S.nick?`<div class="script" style="font-size:15pt; margin-top:2px">${esc(S.nick)}</div>`:'';
+function poemText(){ return S.poemKey==='custom'?S.poemCustom:(POEMS[S.poemKey||theme().poem]||POEMS[theme().poem]).x; }
+function poemTitle(){ return S.poemKey==='custom'?'':(POEMS[S.poemKey||theme().poem]||POEMS[theme().poem]).t.replace(/\s*\(.*\)$/,''); }
+function cardText(){ return S.cardKey==='custom'?S.cardCustom:(CARD_VERSES[S.cardKey||theme().card]||CARD_VERSES[theme().card]).x; }
+const nameOr=()=>S.name||'Their Name';
+const datesLine=()=>{ if(!S.born&&!S.died) return ''; return `${esc(S.born||'')} &nbsp;✦&nbsp; ${esc(S.died||'')}`; };
+
+function motifSVG(scalePct){
+  const t=theme();
+  const fn=ORN[t.motif]||ORN.dove;
+  return `<div class="ornament" style="width:${scalePct||42}%; margin:0 auto">${fn({a:t.accent,b:t.accent2})}</div>`;
+}
+function placeholderPortrait(){
+  const t=theme();
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 250"><rect width="200" height="250" fill="${t.soft}"/><circle cx="100" cy="95" r="42" fill="${t.accent}" opacity=".35"/><path d="M40 210c8-45 42-62 60-62s52 17 60 62z" fill="${t.accent}" opacity=".35"/><text x="100" y="236" text-anchor="middle" font-family="Georgia" font-size="13" fill="${t.accent}">add a photo</text></svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+const portraitSrc=()=>S.portrait||placeholderPortrait();
+function allPhotos(){ const a=[...(S.gallery||[])]; if(S.portrait) a.unshift(S.portrait); return a; }
+
+/* =====================================================================
+   DOCUMENT RENDERERS
+===================================================================== */
+function coverPanel(){
+  const t=theme();
+  return `<div class="panel doc center" style="justify-content:space-between; background:linear-gradient(${t.soft}, #ffffff 30%)">
+    <div>${motifSVG(34)}
+      <div class="caps" style="color:var(--accent2); margin-top:8px">Celebrating the Life of</div>
+    </div>
+    <div>
+      <div class="photo-frame"><img src="${portraitSrc()}" alt=""></div>
+      <div class="script" style="font-size:26pt; margin-top:16px; line-height:1.15">${esc(nameOr())}</div>
+      ${nickHtml()}
+      <div class="rule" style="width:70%; margin:12px auto"></div>
+      <div style="font-size:12pt; letter-spacing:.08em">${datesLine()}</div>
+    </div>
+    <div style="font-size:10pt; line-height:1.6; color:var(--accent2)">
+      ${esc(S.sdate)}${S.stime?` · ${esc(S.stime)}`:''}<br>
+      ${esc(S.svenue)}${S.saddr?`<br><span style="font-size:9pt">${esc(S.saddr)}</span>`:''}
+    </div>
+  </div>`;
+}
+function orderPanel(){
+  const items=lines(S.order).map(l=>{
+    const m=l.split(/\s*—\s*|\s*--\s*/);
+    return `<div style="margin:0 0 9px"><div style="font-size:11.5pt">${esc(m[0])}</div>${m[1]?`<div style="font-size:9.5pt; font-style:italic; color:var(--accent2)">${esc(m[1])}</div>`:''}</div>`;
+  }).join('');
+  return `<div class="panel doc">
+    <h3 class="sect">Order of Service</h3>
+    ${S.officiant?`<div class="center" style="font-size:10pt; font-style:italic; margin-bottom:10px">Officiated by ${esc(S.officiant)}</div>`:''}
+    <div class="rule" style="width:55%; margin:0 auto 14px"></div>
+    <div class="fit center" style="flex:1">${items}</div>
+    ${S.interment?`<div class="center" style="font-size:9.5pt; margin-top:8px; color:var(--accent2)"><span class="caps" style="font-size:8.5pt">Interment</span><br>${esc(S.interment)}</div>`:''}
+  </div>`;
+}
+function obitPanel(text, title){
+  return `<div class="panel doc">
+    <h3 class="sect">${title||'A Life Remembered'}</h3>
+    <div class="rule" style="width:55%; margin:0 auto 12px"></div>
+    <div class="fit" style="flex:1; font-size:10.5pt; line-height:1.65; text-align:justify">
+      ${paras(text).map(p=>`<p style="margin-bottom:9px; text-indent:1.4em">${esc(p)}</p>`).join('')||'<p style="font-style:italic; color:#999">Add the obituary in section 7 — or open the included Obituary Writing Prompts guide for step-by-step help.</p>'}
+    </div>
+  </div>`;
+}
+function backPanel(){
+  const pb=lines(S.pallbearers);
+  return `<div class="panel doc center" style="justify-content:space-between">
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center" class="fit">
+      ${poemTitle()?`<h3 class="sect" style="font-size:10.5pt">${esc(poemTitle())}</h3>`:''}
+      <div style="font-size:10pt; line-height:1.7; font-style:italic; white-space:pre-line">${esc(poemText())}</div>
+    </div>
+    ${pb.length?`<div style="margin:10px 0"><div class="caps" style="font-size:8.5pt; color:var(--accent2)">Pallbearers</div><div style="font-size:9.5pt; line-height:1.6; margin-top:4px">${pb.map(esc).join(' · ')}</div></div>`:''}
+    <div>
+      <div class="rule" style="width:60%; margin:8px auto"></div>
+      <div class="caps" style="font-size:8.5pt; color:var(--accent2)">Acknowledgment</div>
+      <div style="font-size:9pt; line-height:1.6; margin-top:5px">${esc(S.ack)}</div>
+      ${S.repast?`<div style="font-size:9pt; font-style:italic; margin-top:8px; color:var(--accent2)">${esc(S.repast)}</div>`:''}
+      <div class="script" style="font-size:13pt; margin-top:10px">${esc(theme().tag)}</div>
+    </div>
+  </div>`;
+}
+function poemPanel(){
+  return `<div class="panel doc center" style="justify-content:center; background:var(--soft)">
+    ${motifSVG(30)}
+    <div class="fit" style="margin-top:14px">
+      ${poemTitle()?`<h3 class="sect" style="font-size:11pt">${esc(poemTitle())}</h3>`:''}
+      <div style="font-size:10.5pt; line-height:1.8; font-style:italic; white-space:pre-line">${esc(poemText())}</div>
+    </div>
+    <div class="script" style="font-size:14pt; margin-top:16px">${esc(theme().epitaph).startsWith('“')?'':''}</div>
+    <div style="font-size:9pt; color:var(--accent2); margin-top:10px; font-style:italic">${esc(theme().epitaph)}</div>
+  </div>`;
+}
+function photosPanel(){
+  const ph=allPhotos().slice(0,6);
+  const cells= ph.length? ph.map((p,i)=>`<div class="cph${i===0?' big':''}"><img src="${p}"></div>`).join('')
+    : `<div class="center" style="grid-column:span 4; align-self:center; font-style:italic; color:#999">Add photos in section 4 and they appear here automatically.</div>`;
+  return `<div class="panel doc">
+    <h3 class="sect">Cherished Memories</h3>
+    <div class="rule" style="width:55%; margin:0 auto 12px"></div>
+    <div class="collage" style="grid-template-columns:repeat(3,1fr)">${cells}</div>
+  </div>`;
+}
+function thanksPanel(){
+  const pb=lines(S.pallbearers);
+  return `<div class="panel doc center" style="justify-content:center">
+    ${motifSVG(26)}
+    <h3 class="sect" style="margin-top:12px">With Grateful Hearts</h3>
+    <div class="fit" style="font-size:10pt; line-height:1.7; margin-top:6px">${esc(S.ack)}</div>
+    ${pb.length?`<div style="margin-top:14px"><div class="caps" style="font-size:8.5pt; color:var(--accent2)">Pallbearers</div><div style="font-size:9.5pt; line-height:1.6; margin-top:4px">${pb.map(esc).join('<br>')}</div></div>`:''}
+    ${S.repast?`<div style="font-size:9.5pt; font-style:italic; margin-top:12px; color:var(--accent2)">${esc(S.repast)}</div>`:''}
+    <div class="script" style="font-size:14pt; margin-top:14px">${esc(theme().tag)}</div>
+  </div>`;
+}
+function sheet(cls, tag, inner){
+  return `<div class="sheet ${cls}"><div class="sheet-tag no-print">${tag}</div>${inner}</div>`;
+}
+
+/* --- 4-page program: 2 landscape sides --- */
+function renderProgram4(){
+  return sheet('land','Sheet 1 · Side A — Outside (back cover + front cover)', backPanel()+coverPanel())
+       + sheet('land','Sheet 1 · Side B — Inside (order of service + obituary)', orderPanel()+obitPanel(S.obit));
+}
+/* --- 8-page program: booklet imposition on 2 sheets --- */
+function renderProgram8(){
+  const ps=paras(S.obit);
+  let acc=0, split=ps.length;
+  const total=ps.reduce((a,p)=>a+p.length,0);
+  for(let i=0;i<ps.length;i++){ acc+=ps[i].length; if(acc>=total/2){ split=i+1; break; } }
+  const obitA=ps.slice(0,split).join('\n\n'), obitB=ps.slice(split).join('\n\n');
+  return sheet('land','Sheet 1 · Side A — pages 8 &amp; 1', thanksPanel()+coverPanel())
+       + sheet('land','Sheet 1 · Side B — pages 2 &amp; 7', obitPanel(obitA,'A Life Remembered')+poemPanel())
+       + sheet('land','Sheet 2 · Side A — pages 6 &amp; 3', photosPanel()+obitPanel(obitB||' ', obitB?'A Life Remembered (continued)':'Reflections'))
+       + sheet('land','Sheet 2 · Side B — pages 4 &amp; 5', orderPanel()+`<div class="panel doc center" style="justify-content:center; background:var(--soft)">
+            <div class="photo-frame round"><img src="${portraitSrc()}"></div>
+            <div class="script" style="font-size:20pt; margin-top:14px">${esc(nameOr())}</div>
+            <div style="font-size:10.5pt; letter-spacing:.08em; margin-top:6px">${datesLine()}</div>
+            <div class="rule" style="width:50%; margin:12px auto"></div>
+            <div style="font-size:9.5pt; font-style:italic; color:var(--accent2)">${esc(theme().epitaph)}</div>
+          </div>`);
+}
+/* --- Invitation: two 7x5 cards per portrait sheet --- */
+function inviteCard(){
+  const t=theme();
+  return `<div class="doc" style="width:7in; height:5in; border:1px solid var(--accent); position:relative; display:flex; background:linear-gradient(120deg, var(--soft) 0 32%, #fff 32%)">
+    <div style="width:32%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:.2in">
+      <div class="photo-frame round" style="width:1.7in; height:1.7in; border-width:2px"><img src="${portraitSrc()}"></div>
+      <div style="margin-top:.18in; width:70%">${motifSVG(100)}</div>
+    </div>
+    <div class="center" style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:.25in .35in">
+      <div class="caps" style="font-size:9pt; color:var(--accent2)">Celebration of Life</div>
+      <div class="script" style="font-size:23pt; margin:6px 0 2px; line-height:1.1">${esc(nameOr())}</div>
+      <div style="font-size:9.5pt; letter-spacing:.06em">${datesLine()}</div>
+      <div class="rule" style="width:60%; margin:10px auto"></div>
+      <div style="font-size:9.5pt; line-height:1.55; font-style:italic">${esc(S.invMsg)}</div>
+      <div style="font-size:10pt; line-height:1.7; margin-top:10px">
+        <b>${esc(S.sdate)}</b>${S.stime?` · ${esc(S.stime)}`:''}<br>
+        ${esc(S.svenue)}${S.saddr?`<br><span style="font-size:8.5pt">${esc(S.saddr)}</span>`:''}
+      </div>
+      ${S.rsvp?`<div style="font-size:8.5pt; margin-top:8px; color:var(--accent2)">${esc(S.rsvp)}</div>`:''}
+      ${S.stream?`<div style="font-size:8.5pt; margin-top:2px; color:var(--accent2)">${esc(S.stream)}</div>`:''}
+    </div>
+  </div>`;
+}
+function renderInvite(){
+  return sheet('port','Two invitations per sheet — cut on the lines',
+    `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.3in; width:100%; height:100%">
+      ${inviteCard()}${inviteCard()}
+    </div>`);
+}
+/* --- Social announcement (square, PNG export) --- */
+function socialSVG(px){
+  const t=theme(); const P=px||1080;
+  const photo=portraitSrc();
+  const wrap=(txt,max)=>{ // crude word wrap for svg
+    const words=String(txt||'').split(/\s+/); const out=[]; let cur='';
+    words.forEach(w=>{ if((cur+' '+w).trim().length>max){ out.push(cur.trim()); cur=w; } else cur+=' '+w; });
+    if(cur.trim()) out.push(cur.trim()); return out;
+  };
+  const nm=esc(nameOr());
+  const nmSize=nm.length>22?58:(nm.length>16?70:82);
+  const venueLines=wrap(`${S.svenue||''}${S.saddr?' · '+S.saddr:''}`,46);
+  let y=812;
+  const venueTxt=venueLines.map(l=>`<text x="540" y="${y+=40}" text-anchor="middle" font-family="Georgia" font-size="30" fill="${t.ink}">${esc(l)}</text>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${P}" height="${P}" viewBox="0 0 1080 1080">
+    <rect width="1080" height="1080" fill="${t.soft}"/>
+    <rect x="34" y="34" width="1012" height="1012" fill="#ffffff"/>
+    <rect x="34" y="34" width="1012" height="1012" fill="none" stroke="${t.accent}" stroke-width="3"/>
+    <rect x="50" y="50" width="980" height="980" fill="none" stroke="${t.accent}" stroke-width="1" opacity=".5"/>
+    <text x="540" y="150" text-anchor="middle" font-family="Georgia" font-size="30" letter-spacing="14" fill="${t.accent2}">IN LOVING MEMORY</text>
+    <line x1="360" y1="185" x2="720" y2="185" stroke="${t.accent}" stroke-width="1.5" opacity=".6"/>
+    <clipPath id="pc"><circle cx="540" cy="395" r="175"/></clipPath>
+    <circle cx="540" cy="395" r="183" fill="none" stroke="${t.accent}" stroke-width="5"/>
+    <image href="${photo}" x="365" y="220" width="350" height="350" preserveAspectRatio="xMidYMid slice" clip-path="url(#pc)"/>
+    <text x="540" y="672" text-anchor="middle" font-family="Georgia" font-style="italic" font-size="${nmSize}" fill="${t.ink}">${nm}</text>
+    <text x="540" y="726" text-anchor="middle" font-family="Georgia" font-size="34" letter-spacing="4" fill="${t.accent2}">${esc(S.born||'')} ${S.born||S.died?'✦':''} ${esc(S.died||'')}</text>
+    <text x="540" y="800" text-anchor="middle" font-family="Georgia" font-size="34" font-weight="bold" fill="${t.ink}">${esc(S.sdate||'')}${S.stime?' · '+esc(S.stime):''}</text>
+    ${venueTxt}
+    ${S.stream?`<text x="540" y="${y+=48}" text-anchor="middle" font-family="Georgia" font-size="27" fill="${t.accent2}">${esc(S.stream)}</text>`:''}
+    <text x="540" y="988" text-anchor="middle" font-family="Georgia" font-style="italic" font-size="30" fill="${t.accent2}">${esc(theme().tag)}</text>
+  </svg>`;
+}
+function renderSocial(){
+  return `<div class="sheet sq" style="padding:0"><div class="sheet-tag no-print">Square announcement — use the download button below</div>${socialSVG('100%')}</div>
+  <div class="no-print" style="text-align:center; margin-bottom:20px">
+    <button class="btn" style="background:var(--ui-accent-dark); border-color:var(--ui-accent-dark); font-size:15px; padding:11px 22px" onclick="downloadSocial()">⬇ Download Image (1080 × 1080)</button>
+  </div>`;
+}
+function downloadSocial(){
+  const svg=socialSVG(1080);
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=1080; c.height=1080;
+    const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,1080,1080); ctx.drawImage(img,0,0,1080,1080);
+    const a=document.createElement('a');
+    a.download=(S.name?S.name.replace(/[^\w]+/g,'-'):'memorial')+'-announcement.png';
+    a.href=c.toDataURL('image/png'); a.click();
+  };
+  img.onerror=()=>alert('Could not build the image. If you just added a photo, try again in a moment.');
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+/* --- Welcome sign --- */
+function renderSign(){
+  const t=theme();
+  return sheet('port','Welcome sign — print on Letter, or enlarge to 18×24″ at any print shop',
+   `<div class="doc center" style="width:100%; height:100%; padding:.7in .6in; display:flex; flex-direction:column; justify-content:space-between; background:linear-gradient(${t.soft}, #fff 26%); border:14px double var(--accent); ">
+      <div>${motifSVG(26)}
+        <div class="script" style="font-size:52pt; margin-top:.15in">Welcome</div>
+        <div class="caps" style="font-size:13pt; color:var(--accent2); margin-top:.1in">to the Celebration of Life honoring</div>
+      </div>
+      <div>
+        <div class="photo-frame" style="width:3.2in; height:3.9in"><img src="${portraitSrc()}"></div>
+        <div class="script" style="font-size:34pt; margin-top:.25in; line-height:1.1">${esc(nameOr())}</div>
+        ${nickHtml()}
+        <div style="font-size:15pt; letter-spacing:.1em; margin-top:.12in">${datesLine()}</div>
+      </div>
+      <div style="font-size:12pt; color:var(--accent2); font-style:italic">
+        ${esc(theme().epitaph)}<br>
+        <span style="font-size:10.5pt">${esc(S.repast||'Thank you for celebrating with us today.')}</span>
+      </div>
+    </div>`);
+}
+/* --- Prayer cards: 6-up fronts + 6-up backs --- */
+function prayerFront(){
+  return `<div class="doc center" style="width:100%; height:100%; padding:.16in .14in; display:flex; flex-direction:column; justify-content:space-between; background:linear-gradient(var(--soft), #fff 30%)">
+    <div class="caps" style="font-size:6pt; color:var(--accent2)">In Loving Memory</div>
+    <div>
+      <div class="photo-frame" style="width:1.25in; height:1.55in; border-width:2px"><img src="${portraitSrc()}"></div>
+      <div class="script" style="font-size:12.5pt; margin-top:.09in; line-height:1.1">${esc(nameOr())}</div>
+      <div style="font-size:6.5pt; letter-spacing:.06em; margin-top:.04in">${datesLine()}</div>
+    </div>
+    <div style="width:56%; margin:0 auto">${motifSVG(100)}</div>
+  </div>`;
+}
+function prayerBack(){
+  return `<div class="doc center" style="width:100%; height:100%; padding:.18in .15in; display:flex; flex-direction:column; justify-content:center; background:#fff">
+    <div style="width:34%; margin:0 auto .08in">${motifSVG(100)}</div>
+    <div style="font-size:7.4pt; line-height:1.55; font-style:italic; white-space:pre-line">${esc(cardText())}</div>
+    <div class="rule" style="width:55%; margin:.1in auto"></div>
+    <div class="script" style="font-size:10pt; color:var(--accent)">${esc(theme().tag)}</div>
+  </div>`;
+}
+function renderCards(){
+  const grid=inner=>`<div class="cutgrid" style="grid-template-columns:repeat(3, 2.5in); grid-template-rows:repeat(2, 4.25in); gap:0">${Array(6).fill(0).map(()=>`<div class="cutcell">${inner()}</div>`).join('')}</div>`;
+  return sheet('port','Sheet 1 — card FRONTS (6 per sheet · each 2½ × 4¼″)',`<div style="width:100%; display:flex; align-items:center; justify-content:center">${grid(prayerFront)}</div>`)
+       + sheet('port','Sheet 2 — card BACKS (print on reverse, flip on long edge)',`<div style="width:100%; display:flex; align-items:center; justify-content:center">${grid(prayerBack)}</div>`);
+}
+/* --- Collage --- */
+function renderCollage(){
+  const ph=allPhotos().slice(0,12);
+  const cells=ph.length? ph.map((p,i)=>`<div class="cph${(i===0||i===5)?' big':''}"><img src="${p}"></div>`).join('')
+    : `<div class="center" style="grid-column:span 4; align-self:center; font-style:italic; color:#999; font-size:12pt">Add photos in section 4 (left panel) and your collage builds itself.</div>`;
+  return sheet('port','Photo collage — Letter size (a print shop can enlarge the PDF to poster size)',
+   `<div class="doc" style="width:100%; height:100%; padding:.5in; display:flex; flex-direction:column">
+      <div class="center">
+        <div class="script" style="font-size:24pt">${esc(nameOr())}</div>
+        <div class="caps" style="font-size:9pt; color:var(--accent2); margin:4px 0 2px">Cherished Memories</div>
+        <div style="font-size:9.5pt; letter-spacing:.08em">${datesLine()}</div>
+        <div class="rule" style="width:45%; margin:8px auto 12px"></div>
+      </div>
+      <div class="collage">${cells}</div>
+    </div>`);
+}
+/* --- Slideshow --- */
+function renderSlideshowSetup(){
+  const n=allPhotos().length;
+  return `<div class="sheet port" style="align-items:center; justify-content:center">
+    <div class="doc center" style="padding:1in">
+      ${motifSVG(30)}
+      <div class="script" style="font-size:26pt; margin-top:.3in">Memorial Slideshow</div>
+      <div style="margin:.25in 0; font-size:12pt; line-height:1.7">
+        <b>${n}</b> photo${n===1?'':'s'} ready.<br>
+        Photos fade gently, full screen, with the name and dates shown below.<br>
+        Connect this device to the venue's TV or projector, then press start.
+      </div>
+      <div class="no-print" style="margin-top:.2in">
+        <label style="text-align:center">Seconds per photo</label>
+        <input type="number" id="ssSecs" value="7" min="3" max="30" style="width:90px; margin:0 auto; text-align:center">
+        <br><br>
+        <button class="btn" style="background:var(--ui-accent-dark); border-color:var(--ui-accent-dark); font-size:16px; padding:13px 26px" onclick="startSlideshow()">▶ Start Slideshow (full screen)</button>
+      </div>
+    </div>
+  </div>`;
+}
+let ssTimer=null, ssIdx=0;
+function startSlideshow(){
+  const ph=allPhotos();
+  if(!ph.length){ alert('Add photos first — section 4 in the left panel.'); return; }
+  const box=$('slideshow');
+  box.querySelectorAll('img').forEach(i=>i.remove());
+  ph.forEach(src=>{ const im=document.createElement('img'); im.src=src; box.insertBefore(im, box.querySelector('.cap')); });
+  $('ssCap').innerHTML=`${esc(nameOr())}<small>${(S.born||'')+(S.born&&S.died?'  ✦  ':'')+(S.died||'')}</small>`;
+  box.classList.add('on');
+  if(box.requestFullscreen) box.requestFullscreen().catch(()=>{});
+  const imgs=box.querySelectorAll('img'); ssIdx=0;
+  imgs[0].classList.add('show');
+  const secs=Math.max(3, parseInt(($('ssSecs')||{}).value||'7',10))*1000;
+  clearInterval(ssTimer);
+  ssTimer=setInterval(()=>{ imgs[ssIdx].classList.remove('show'); ssIdx=(ssIdx+1)%imgs.length; imgs[ssIdx].classList.add('show'); }, secs);
+}
+function stopSlideshow(){
+  clearInterval(ssTimer); $('slideshow').classList.remove('on');
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') stopSlideshow(); });
+document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement && $('slideshow').classList.contains('on')) stopSlideshow(); });
+
+/* =====================================================================
+   RENDER PIPELINE
+===================================================================== */
+const RENDER={program4:renderProgram4, program8:renderProgram8, invite:renderInvite, social:renderSocial,
+              sign:renderSign, cards:renderCards, collage:renderCollage, slideshow:renderSlideshowSetup};
+
+function render(){
+  const t=theme();
+  const paper=$('paper');
+  paper.style.setProperty('--ink',t.ink);
+  paper.style.setProperty('--accent',t.accent);
+  paper.style.setProperty('--accent2',t.accent2);
+  paper.style.setProperty('--soft',t.soft);
+  paper.innerHTML=(RENDER[S.doc]||renderProgram4)();
+  const doc=DOCS.find(d=>d.id===S.doc);
+  $('docNote').innerHTML=doc.note;
+  $('pageStyle').textContent=`@page{size:${doc.page}; margin:0;}`;
+  autofit(); scalePreview();
+}
+/* Screen and print wrap text slightly differently, so fitting flush to the box
+   clips in PDFs — fit to 95% instead, measured via child rects (scale-invariant). */
+function fitRatio(el){
+  const r=el.getBoundingClientRect();
+  if(!r.height) return 0;
+  let bottom=r.top;
+  for(const c of el.children){ const b=c.getBoundingClientRect().bottom; if(b>bottom) bottom=b; }
+  return (bottom-r.top)/r.height;
+}
+function autofit(){
+  document.querySelectorAll('#paper .fit').forEach(el=>{
+    if(!el.dataset.base) el.dataset.base=getComputedStyle(el).fontSize; // set once per render (innerHTML rebuild clears it)
+    const base=parseFloat(el.dataset.base);
+    el.style.fontSize=el.dataset.base;
+    let pct=100;
+    while(fitRatio(el)>0.88 && pct>52){ pct-=3; el.style.fontSize=(base*pct/100).toFixed(1)+'px'; }
+  });
+}
+function scalePreview(){
+  const stage=document.querySelector('.stage');
+  const first=document.querySelector('#paper .sheet');
+  if(!first) return;
+  const w=first.offsetWidth;
+  const avail=Math.min(stage.clientWidth-16, 960);
+  const sc=Math.min(1, avail/w);
+  $('paperScale').style.transform=`scale(${sc})`;
+  $('paperScale').style.marginBottom=(-$('paper').offsetHeight*(1-sc))+'px';
+}
+window.addEventListener('resize',scalePreview);
+
+/* =====================================================================
+   UI WIRING
+===================================================================== */
+function buildThemeGrid(){
+  $('themeGrid').innerHTML=Object.entries(THEMES).map(([k,t])=>`
+    <div class="theme-card${k===S.theme?' sel':''}" data-k="${k}">
+      <div class="swatch"><i style="background:${t.ink}"></i><i style="background:${t.accent}"></i><i style="background:${t.accent2}"></i><i style="background:${t.soft}"></i></div>
+      ${t.name}
+    </div>`).join('');
+  $('themeGrid').querySelectorAll('.theme-card').forEach(c=>c.onclick=()=>{ S.theme=c.dataset.k; save(); buildThemeGrid(); render(); });
+}
+function buildDocList(){
+  $('docList').innerHTML=DOCS.map(d=>`
+    <button class="doc-btn${d.id===S.doc?' sel':''}" data-k="${d.id}">
+      <span class="ic">${d.ic}</span><span>${d.name}<small>${d.sub}</small></span>
+    </button>`).join('');
+  $('docList').querySelectorAll('.doc-btn').forEach(b=>b.onclick=()=>{ S.doc=b.dataset.k; save(); buildDocList(); render();
+    if(document.body.classList.contains('tab-edit') && window.innerWidth<=900) switchTab(false); });
+}
+const FIELDS=['name','nick','born','died','sdate','stime','svenue','saddr','officiant','interment','repast','order','obit','poemCustom','cardCustom','pallbearers','ack','invMsg','rsvp','stream'];
+function bindFields(){
+  FIELDS.forEach(k=>{ const el=$('f_'+k); if(!el) return;
+    el.value=S[k]||'';
+    el.addEventListener('input',()=>{ S[k]=el.value; save(); render(); });
+  });
+  const fillSel=(sel,map,cur)=>{ sel.innerHTML=`<option value="">✨ Theme default</option>`+Object.entries(map).map(([k,v])=>`<option value="${k}"${k===cur?' selected':''}>${v.t}</option>`).join(''); if(cur) sel.value=cur; };
+  fillSel($('f_poemKey'),POEMS,S.poemKey); fillSel($('f_cardKey'),CARD_VERSES,S.cardKey);
+  $('f_poemKey').onchange=e=>{ S.poemKey=e.target.value; $('f_poemCustom').style.display=S.poemKey==='custom'?'block':'none'; save(); render(); };
+  $('f_cardKey').onchange=e=>{ S.cardKey=e.target.value; $('f_cardCustom').style.display=S.cardKey==='custom'?'block':'none'; save(); render(); };
+  $('f_poemCustom').style.display=S.poemKey==='custom'?'block':'none';
+  $('f_cardCustom').style.display=S.cardKey==='custom'?'block':'none';
+}
+/* photos */
+function readImage(file,max){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=()=>{ const img=new Image();
+      img.onload=()=>{ const sc=Math.min(1,(max||1600)/Math.max(img.width,img.height));
+        const c=document.createElement('canvas'); c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        res(c.toDataURL('image/jpeg',.86)); };
+      img.onerror=()=>res(null); img.src=r.result; };
+    r.readAsDataURL(file);
+  });
+}
+function drawPhotoRows(){
+  $('portraitRow').innerHTML=S.portrait?`<span class="thumb-box"><img class="thumb" src="${S.portrait}"><b onclick="delPortrait()">×</b></span>`:'';
+  $('galleryRow').innerHTML=(S.gallery||[]).map((p,i)=>`<span class="thumb-box"><img class="thumb" src="${p}"><b onclick="delGallery(${i})">×</b></span>`).join('');
+}
+window.delPortrait=()=>{ S.portrait=''; save(); drawPhotoRows(); render(); };
+window.delGallery=i=>{ S.gallery.splice(i,1); save(); drawPhotoRows(); render(); };
+$('f_portrait').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  S.portrait=await readImage(f,1400)||S.portrait; save(); drawPhotoRows(); render(); e.target.value='';
+});
+$('f_gallery').addEventListener('change',async e=>{
+  for(const f of e.target.files){ const d=await readImage(f,1600); if(d) S.gallery.push(d); }
+  save(); drawPhotoRows(); render(); e.target.value='';
+});
+
+/* sections collapse */
+document.querySelectorAll('.section > h2').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('open'));
+
+/* top bar */
+$('btnPrint').onclick=()=>{ if(S.doc==='slideshow'||S.doc==='social'){ alert(S.doc==='social'?'Use the “Download Image” button under the preview — it saves a perfect square image for posting.':'The slideshow plays on screen — press “Start Slideshow” under the preview instead.'); return; } window.print(); };
+$('btnExport').onclick=()=>{
+  const a=document.createElement('a');
+  a.download=(S.name?S.name.replace(/[^\w]+/g,'-'):'memorial')+'-backup.json';
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(S));
+  a.click();
+};
+$('importFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ S=Object.assign(freshState(),JSON.parse(r.result)); save(); initUI(); render(); alert('Backup loaded ✓'); }catch(_){ alert('That file could not be read. Please choose a backup saved from this app.'); } };
+  r.readAsText(f); e.target.value='';
+});
+$('btnSample').onclick=()=>{
+  if(S.name && !confirm("Replace what you've typed with the example? (Your photos are kept.)")) return;
+  Object.assign(S,{
+    name:'Eleanor Mae Johnson', nick:'“Ellie”', born:'March 4, 1941', died:'June 28, 2026',
+    sdate:'Saturday, July 11, 2026', stime:'11:00 in the morning',
+    svenue:'Grace Community Church', saddr:'1200 Chapel Hill Road · Marietta, Georgia',
+    officiant:'Reverend Samuel T. Brooks', interment:'Rosewood Memorial Gardens',
+    repast:'The family invites you to a repast in the church fellowship hall immediately following the service.',
+    obit:`Eleanor Mae Johnson was born on March 4, 1941, in Macon, Georgia, the second of five children born to Willie and Ruth Thompson. From her earliest days she was known for two things: a laugh you could hear from the next room, and a table that always had room for one more.\n\nEleanor graduated from Ballard-Hudson High School in 1959 and married her sweetheart, Robert Johnson, in the spring of 1961. Together they built a life of sixty-two years, raising three children in a home filled with gospel music, Sunday dinners, and unconditional love.\n\nFor thirty-four years, Eleanor taught third grade at Piedmont Elementary, where generations of students knew her simply as "Mrs. J." She believed every child could learn, and she proved it, one patient afternoon at a time. After retiring in 1998, she poured that same devotion into her church, her garden, and — above all — her grandchildren.\n\nEleanor was a faithful member of Grace Community Church for over fifty years, where she sang alto in the Senior Choir and never once missed the Christmas cantata. Her peach cobbler was famous at every church picnic, and her recipe — like her love — was freely given to anyone who asked.\n\nShe was preceded in death by her beloved husband, Robert, and her brothers James and Charles. She leaves to cherish her memory her children, Denise (Marcus), Robert Jr. (Angela), and Patricia; seven grandchildren; four great-grandchildren; her sister, Margaret; and a host of nieces, nephews, church family, and friends.\n\nEleanor's hands were never idle and her door was never locked. She met every stranger like family and every hardship with faith. Her favorite saying will stay with all who loved her: "God doesn't make mistakes, baby — He makes mornings."`,
+    pallbearers:'Marcus Williams\nRobert Johnson Jr.\nDarnell Johnson\nAnthony Johnson\nTerrence Cole\nBrian Thompson',
+    rsvp:'Kindly RSVP to Denise at (404) 555-0182',
+    stream:'Watch online: gracechurch.org/live'
+  });
+  save(); initUI(); render();
+};
+
+/* mobile tabs */
+function switchTab(edit){
+  document.body.classList.toggle('tab-edit',edit);
+  $('tabEdit').classList.toggle('on',edit);
+  $('tabPrev').classList.toggle('on',!edit);
+  if(!edit) setTimeout(scalePreview,30);
+}
+$('tabEdit').onclick=()=>switchTab(true);
+$('tabPrev').onclick=()=>switchTab(false);
+
+/* init */
+function initUI(){ buildThemeGrid(); buildDocList(); bindFields(); drawPhotoRows(); }
+load(); initUI(); render();
+if(window.innerWidth>900) document.body.classList.remove('tab-edit');
+window.addEventListener('beforeprint',()=>{ autofit(); });
+</script>
+</body>
+</html>
