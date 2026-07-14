@@ -6,12 +6,28 @@ import { fileURLToPath } from 'url';
 import { retrieve, formatContext } from './brain.js';
 import * as voice from './voice.js';
 
-const PERSONA = fs.readFileSync(
-  path.join(path.dirname(fileURLToPath(import.meta.url)), 'persona.md'), 'utf8'
-);
+const CLONE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PERSONA = fs.readFileSync(path.join(CLONE_DIR, 'persona.md'), 'utf8');
 
 export function cloneRouter(openai) {
   const router = Router();
+
+  // Mobile capture page — record, review, upload, train from a phone browser
+  router.get('/capture', (req, res) => {
+    res.sendFile(path.join(CLONE_DIR, 'capture.html'));
+  });
+
+  // Optional shared-secret gate for everything below. Set CLONE_API_TOKEN
+  // when exposing the server beyond localhost (tunnel/LAN) so voice data
+  // and the brain aren't open to anyone with the URL.
+  router.use((req, res, next) => {
+    const required = process.env.CLONE_API_TOKEN;
+    if (!required) return next();
+    const provided = req.get('x-clone-token') ||
+      (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+    if (provided === required) return next();
+    res.status(401).json({ error: 'Invalid or missing clone API token.' });
+  });
 
   // === Ask the clone (grounded, in Richard's voice) ===
   // body: { message, audience?: 'public'|'known'|'private', speak?: boolean }

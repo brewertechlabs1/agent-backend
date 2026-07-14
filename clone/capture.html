@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voice Capture — Richard's Clone</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #111318; --muted: #5b6472; --card: #f4f5f7;
+    --line: #e2e5ea; --accent: #2f6fed; --rec: #d63333; --ok: #1d8a4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101318; --fg: #eceff4; --muted: #9aa3b0; --card: #1a1f27;
+      --line: #2a3140; --accent: #6fa0ff; --rec: #ff6b6b; --ok: #4cc37e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+    max-width: 640px; margin-inline: auto;
+  }
+  h1 { font-size: 1.25rem; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: .9rem; margin-bottom: 16px; }
+  .banner {
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: .9rem;
+    background: var(--card); border: 1px solid var(--line); display: none;
+  }
+  .banner.error { display: block; border-color: var(--rec); color: var(--rec); }
+  .banner.ok { display: block; border-color: var(--ok); color: var(--ok); }
+  .take {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .take h2 { font-size: 1rem; margin: 0 0 2px; display: flex; justify-content: space-between; gap: 8px; }
+  .take h2 .dur { color: var(--muted); font-weight: normal; font-size: .85rem; white-space: nowrap; }
+  .take p { margin: 4px 0 10px; color: var(--muted); font-size: .9rem; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button {
+    font: inherit; border: 0; border-radius: 10px; padding: 10px 16px;
+    background: var(--accent); color: #fff; min-height: 44px; cursor: pointer;
+  }
+  button:disabled { opacity: .45; }
+  button.rec { background: var(--rec); }
+  button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+  button.danger { background: transparent; color: var(--rec); border: 1px solid var(--rec); }
+  .timer { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 3.5em; }
+  .done { color: var(--ok); font-size: .9rem; }
+  audio { width: 100%; margin-top: 10px; }
+  .samples li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+  .samples { list-style: none; padding: 0; margin: 8px 0; }
+  section.admin { margin-top: 24px; }
+  section.admin h2 { font-size: 1.05rem; }
+  .note { color: var(--muted); font-size: .8rem; margin-top: 16px; }
+</style>
+</head>
+<body>
+<h1>🎙️ Voice Capture — Richard's Clone</h1>
+<div class="sub">Quiet room. Normal pace and energy — talk, don't announce. Stumbled? Restart the sentence and keep rolling.</div>
+<div id="banner" class="banner"></div>
+
+<div id="takes"></div>
+
+<section class="admin">
+  <h2>Stored samples</h2>
+  <ul id="samples" class="samples"></ul>
+  <div class="row">
+    <button id="train">Train voice model</button>
+    <button id="wipe" class="danger">Delete everything</button>
+  </div>
+  <div class="note">
+    Samples are encrypted at rest on the server and used solely to build your
+    voice model. “Delete everything” removes the ElevenLabs model and every
+    stored sample in one tap.
+  </div>
+</section>
+
+<script>
+const TAKES = [
+  { id: 'read-own-writing',  title: '1 · Read: something you wrote', dur: '60–90s',
+    prompt: 'Read a paragraph from a post, email, or doc of yours — naturally, like you’re explaining it to one person.' },
+  { id: 'read-technical',    title: '2 · Read: technical passage', dur: '60–90s',
+    prompt: 'Read something technical you’d explain to a builder — a different register from take 1.' },
+  { id: 'read-numbers-names',title: '3 · Read: numbers & names', dur: '30–60s',
+    prompt: 'A few sentences with numbers and names: Zapier, Notion, Ollama, Mistral, BEAM, some real figures.' },
+  { id: 'free-current-build',title: '4 · Free: a current build', dur: '~2 min',
+    prompt: 'Off the cuff: what you’re building right now and how the pipeline works.' },
+  { id: 'free-hype-take',    title: '5 · Free: your AI-hype take', dur: '~2 min',
+    prompt: 'A stance you actually hold about AI/automation hype. Say it like you’d say it.' },
+  { id: 'free-music-beam',   title: '6 · Free: BEAM / music', dur: '~2 min',
+    prompt: 'Talk about BEAM or a track you’re working on — the creator side of you.' },
+  { id: 'conv-voicemail',    title: '7 · Casual voicemail', dur: '30–60s',
+    prompt: 'Leave a casual voicemail-style message for a friend.' },
+  { id: 'conv-transactional',title: '8 · Clipped & transactional', dur: '~30s',
+    prompt: 'A short vendor/scheduling-tone message. Efficient, no warmth needed.' },
+  { id: 'extra',             title: '9 · Extra (optional)', dur: 'any',
+    prompt: 'Anything else you want the voice trained on.' },
+];
+
+const banner = document.getElementById('banner');
+function flash(msg, cls) { banner.textContent = msg; banner.className = 'banner ' + cls; }
+
+function token() { return localStorage.getItem('cloneToken') || ''; }
+async function api(path, opts = {}) {
+  opts.headers = Object.assign({ 'x-clone-token': token() }, opts.headers || {});
+  let res = await fetch(path, opts);
+  if (res.status === 401) {
+    const t = prompt('Access token for this server (CLONE_API_TOKEN):');
+    if (t === null) throw new Error('Token required.');
+    localStorage.setItem('cloneToken', t.trim());
+    opts.headers['x-clone-token'] = t.trim();
+    res = await fetch(path, opts);
+  }
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+  return res.json();
+}
+
+function pickMime() {
+  for (const m of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']) {
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+  }
+  return ''; // let the browser choose
+}
+
+function fmt(s) { return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
+
+function buildTake(t) {
+  const el = document.createElement('div');
+  el.className = 'take';
+  el.innerHTML = `
+    <h2><span>${t.title}</span><span class="dur">${t.dur}</span></h2>
+    <p>${t.prompt}</p>
+    <div class="row">
+      <button class="recbtn">● Record</button>
+      <span class="timer">0:00</span>
+      <button class="upload ghost" disabled>Upload</button>
+      <span class="done"></span>
+    </div>`;
+  const recBtn = el.querySelector('.recbtn');
+  const upBtn = el.querySelector('.upload');
+  const timerEl = el.querySelector('.timer');
+  const doneEl = el.querySelector('.done');
+
+  let recorder = null, chunks = [], blob = null, tick = null, started = 0, audioEl = null;
+
+  recBtn.onclick = async () => {
+    if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = pickMime();
+      recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      chunks = [];
+      recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      recorder.onstop = () => {
+        stream.getTracks().forEach((tr) => tr.stop());
+        clearInterval(tick);
+        blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        recBtn.textContent = '● Re-record';
+        recBtn.classList.remove('rec');
+        upBtn.disabled = false;
+        if (audioEl) audioEl.remove();
+        audioEl = document.createElement('audio');
+        audioEl.controls = true;
+        audioEl.src = URL.createObjectURL(blob);
+        el.appendChild(audioEl);
+      };
+      recorder.start();
+      started = Date.now();
+      tick = setInterval(() => { timerEl.textContent = fmt((Date.now() - started) / 1000); }, 250);
+      recBtn.textContent = '■ Stop';
+      recBtn.classList.add('rec');
+      upBtn.disabled = true;
+      doneEl.textContent = '';
+    } catch (err) {
+      flash('Mic access failed: ' + err.message + (window.isSecureContext ? '' : ' — this page must be opened over HTTPS (or localhost) for the mic to work.'), 'error');
+    }
+  };
+
+  upBtn.onclick = async () => {
+    if (!blob) return;
+    upBtn.disabled = true;
+    upBtn.textContent = 'Uploading…';
+    try {
+      const b64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result.split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+      });
+      await api('/clone/voice/samples', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audio: b64, label: t.id, mimeType: blob.type.split(';')[0] }),
+      });
+      doneEl.textContent = '✓ uploaded';
+      upBtn.textContent = 'Upload';
+      refreshSamples();
+    } catch (err) {
+      flash('Upload failed: ' + err.message, 'error');
+      upBtn.textContent = 'Upload';
+      upBtn.disabled = false;
+    }
+  };
+
+  return el;
+}
+
+const takesEl = document.getElementById('takes');
+TAKES.forEach((t) => takesEl.appendChild(buildTake(t)));
+
+async function refreshSamples() {
+  try {
+    const list = await api('/clone/voice/samples');
+    const ul = document.getElementById('samples');
+    ul.innerHTML = list.length ? '' : '<li>No samples yet.</li>';
+    for (const s of list) {
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${s.label} · ${(s.sizeBytes / 1024).toFixed(0)} KB</span>`;
+      const del = document.createElement('button');
+      del.className = 'ghost'; del.textContent = 'Delete';
+      del.onclick = async () => {
+        await api('/clone/voice/samples/' + s.id, { method: 'DELETE' });
+        refreshSamples();
+      };
+      li.appendChild(del);
+      ul.appendChild(li);
+    }
+  } catch (err) {
+    flash('Could not load samples: ' + err.message, 'error');
+  }
+}
+
+document.getElementById('train').onclick = async () => {
+  const btn = document.getElementById('train');
+  btn.disabled = true; btn.textContent = 'Training…';
+  try {
+    const r = await api('/clone/voice/enroll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    flash('Voice model trained ✓ (' + r.sampleCount + ' samples, voice ' + r.voiceId + ')', 'ok');
+  } catch (err) {
+    flash('Training failed: ' + err.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Train voice model';
+};
+
+document.getElementById('wipe').onclick = async () => {
+  if (!confirm('Delete the voice model AND all stored samples? This cannot be undone.')) return;
+  try {
+    const r = await api('/clone/voice', { method: 'DELETE' });
+    flash('Deleted: model ' + (r.voiceModelDeleted ? 'removed' : 'n/a') + ', ' + r.samplesDeleted + ' samples wiped.', 'ok');
+    refreshSamples();
+  } catch (err) {
+    flash('Delete failed: ' + err.message, 'error');
+  }
+};
+
+if (!window.isSecureContext) {
+  flash('Not a secure context — the mic will be blocked. Open this page via HTTPS (tunnel) or on localhost.', 'error');
+}
+refreshSamples();
+</script>
+</body>
+</html>

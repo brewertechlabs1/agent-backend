@@ -17,6 +17,7 @@ it consults before speaking. See:
 
 | Method | Path | Purpose |
 |---|---|---|
+| GET | `/clone/capture` | **Mobile capture page** — record, review, upload, and train from a phone browser |
 | POST | `/clone/ask` | `{message, audience?, speak?}` → grounded reply in Richard's voice (+ base64 audio if `speak: true`) |
 | POST | `/clone/speak` | `{text}` → MP3 in the cloned voice |
 | POST | `/clone/voice/samples` | `{audio: base64, label?, mimeType?}` → store an encrypted sample |
@@ -28,6 +29,15 @@ it consults before speaking. See:
 
 `audience` on `/clone/ask` is `public` (default), `known`, or `private` —
 it controls which `relationship_scope` of brain entries may surface.
+
+### Recording from a phone
+
+Open `/clone/capture` on the phone's browser. Mic access requires HTTPS,
+so expose the local server via a tunnel (`npx localtunnel --port 3000`,
+`ngrok http 3000`, or `tailscale serve 3000`) and set `CLONE_API_TOKEN`
+in `.env` first — with a token set, every `/clone/*` API call must send
+it (`x-clone-token` header or `Authorization: Bearer`); the capture page
+prompts once and remembers it. Full walkthrough in `clone/CAPTURE_PLAN.md`.
 
 ### Voice data rules
 

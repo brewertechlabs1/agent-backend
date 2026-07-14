@@ -47,6 +47,7 @@ function decrypt(buf) {
 
 export function saveSample(audioBuffer, { label = 'sample', mimeType = 'audio/mpeg' } = {}) {
   fs.mkdirSync(SAMPLES_DIR, { recursive: true });
+  label = String(label).replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 60) || 'sample';
   const id = crypto.randomUUID();
   fs.writeFileSync(path.join(SAMPLES_DIR, `${id}.enc`), encrypt(audioBuffer));
   fs.writeFileSync(path.join(SAMPLES_DIR, `${id}.meta.json`), JSON.stringify({
@@ -90,12 +91,17 @@ export async function enrollVoice(name = 'Richard (clone)') {
   const samples = listSamples();
   if (samples.length === 0) throw new Error('No samples stored. Upload samples first.');
 
+  const extByMime = {
+    'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/webm': 'webm',
+    'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/ogg': 'ogg',
+  };
   const form = new FormData();
   form.append('name', name);
   form.append('description', 'Consented voice clone of Richard B. Single purpose: his AI clone.');
   for (const s of samples) {
     const audio = decrypt(fs.readFileSync(path.join(SAMPLES_DIR, `${s.id}.enc`)));
-    form.append('files', new Blob([audio], { type: s.mimeType }), `${s.label}-${s.id}.mp3`);
+    const ext = extByMime[s.mimeType] || 'mp3';
+    form.append('files', new Blob([audio], { type: s.mimeType }), `${s.label}-${s.id}.${ext}`);
   }
 
   const res = await fetch(`${ELEVEN_BASE}/voices/add`, {

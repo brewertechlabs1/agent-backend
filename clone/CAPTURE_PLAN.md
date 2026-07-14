@@ -37,14 +37,37 @@ Talk off the cuff, one topic per take:
 7. Leave a casual voicemail-style message for a friend — 30–60s.
 8. A clipped, transactional message (vendor/scheduling tone) — 30s.
 
-## Upload
+## Recording from your phone (the easy way)
 
-For each file:
+The server ships a mobile capture page at **`/clone/capture`** — every
+take above as a card with record / review / re-record / upload, plus
+sample management and one-tap training. No terminal needed.
+
+Phone browsers only allow mic access over **HTTPS** (or localhost), so
+expose the server securely first:
+
+1. Set `CLONE_API_TOKEN` in `.env` (`openssl rand -hex 16`) — the page
+   will prompt for it once and remember it.
+2. Start the server: `npm start`
+3. Tunnel it, e.g. one of:
+   ```bash
+   npx localtunnel --port 3000        # quick, throwaway URL
+   ngrok http 3000                    # if you have ngrok
+   tailscale serve 3000               # if you're on Tailscale (nicest)
+   ```
+4. Open `https://<tunnel-url>/clone/capture` on your phone and work
+   through the takes. iPhone records `audio/mp4`, Android `audio/webm` —
+   both are handled and accepted by ElevenLabs.
+5. When the takes look good, hit **Train voice model** on the page.
+
+Kill the tunnel when you're done recording.
+
+## Upload via curl (alternative, from a computer)
 
 ```bash
 base64 -w0 take-04-current-build.mp3 > audio.b64
 curl -X POST http://localhost:3000/clone/voice/samples \
-  -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" -H "x-clone-token: $CLONE_API_TOKEN" \
   -d "{\"audio\": \"$(cat audio.b64)\", \"label\": \"free-speech-current-build\", \"mimeType\": \"audio/mpeg\"}"
 ```
 
@@ -52,7 +75,7 @@ Then review the list (`GET /clone/voice/samples`), delete any weak takes
 (`DELETE /clone/voice/samples/:id`), and train:
 
 ```bash
-curl -X POST http://localhost:3000/clone/voice/enroll
+curl -X POST http://localhost:3000/clone/voice/enroll -H "x-clone-token: $CLONE_API_TOKEN"
 ```
 
 ## Bonus: double duty
