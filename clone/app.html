@@ -72,6 +72,10 @@
 <body>
 <header>
   <span class="title">🧠 Richard's Clone</span>
+  <span id="nav" style="display:none; gap:10px; font-size:.85rem;">
+    <a href="/clone/studio" style="color:var(--accent); text-decoration:none;">🎬 Studio</a>
+    <a href="/clone/capture" style="color:var(--accent); text-decoration:none;">🎙️ Capture</a>
+  </span>
   <span class="who" id="who"></span>
   <button id="logout">Sign out</button>
 </header>
@@ -189,6 +193,7 @@ document.getElementById('logout').onclick = async () => {
 
 me().then((u) => {
   document.getElementById('who').textContent = u.displayName;
+  if (u.audience === 'private') document.getElementById('nav').style.display = 'inline-flex';
   const hour = new Date().getHours();
   bubble('clone', (hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening') +
     `, ${u.displayName}. I'm Richard's AI clone — grounded in his knowledge base, speaking in his voice. What do you want to get into?`);

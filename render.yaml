@@ -1,0 +1,43 @@
+# Render blueprint — deploys the clone as a web service with a persistent
+# disk for users, voice data, and media.
+#
+# Deploy: push this repo to GitHub → dashboard.render.com → New → Blueprint
+# → pick this repo → fill in the env vars marked sync:false → Apply.
+# The app comes up at https://<service-name>.onrender.com
+services:
+  - type: web
+    name: richard-clone
+    runtime: node
+    plan: starter            # persistent disks require a paid instance
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /clone/login
+    disk:
+      name: clone-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: CLONE_DATA_DIR
+        value: /var/data
+      - key: LLM_API_KEY          # OpenAI key (the clone's brain)
+        sync: false
+      - key: LLM_MODEL
+        value: gpt-4o
+      - key: ELEVENLABS_API_KEY   # cloned voice
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false
+      - key: ELEVENLABS_TTS_MODEL
+        value: eleven_multilingual_v2
+      - key: VOICE_STORAGE_KEY    # encrypts voice samples + photos at rest
+        generateValue: true
+      - key: ADMIN_USER           # your login — seeded on first boot
+        value: richard
+      - key: ADMIN_PASSWORD       # pick a strong one (min 8 chars)
+        sync: false
+      - key: FAL_KEY              # fal.ai key for Seedance music videos (optional)
+        sync: false
+      - key: NOTION_API_KEY       # only needed for the legacy /ask-agent route
+        sync: false
+      - key: NOTION_AGENT_DATABASES
+        sync: false

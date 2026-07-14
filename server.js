@@ -8,7 +8,9 @@ import { cloneRouter } from './clone/routes.js';
 
 dotenv.config();
 const app = express();
-// 25mb allows base64 voice-sample uploads to /clone/voice/samples
+// behind a cloud proxy (Render/Fly/etc.) so secure cookies + req.ip work
+app.set('trust proxy', 1);
+// 25mb allows base64 voice-sample and photo uploads to /clone/*
 app.use(express.json({ limit: '25mb' }));
 
 const PORT = process.env.PORT || 3000;

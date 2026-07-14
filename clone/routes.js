@@ -5,9 +5,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { retrieve, formatContext } from './brain.js';
 import * as voice from './voice.js';
+import * as images from './images.js';
+import * as video from './video.js';
 import {
   verifyUser, createSession, destroySession, sessionCookie, clearedCookie,
-  requireAuth, requireAudience, listUsers,
+  requireAuth, requireAudience, listUsers, upsertUser,
 } from './auth.js';
 
 const CLONE_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -15,6 +17,22 @@ const PERSONA = fs.readFileSync(path.join(CLONE_DIR, 'persona.md'), 'utf8');
 
 export function cloneRouter(openai) {
   const router = Router();
+
+  // First boot on a fresh host: seed Richard's account from env so no
+  // shell access is needed (set ADMIN_USER + ADMIN_PASSWORD once).
+  if (listUsers().length === 0 && process.env.ADMIN_USER && process.env.ADMIN_PASSWORD) {
+    try {
+      upsertUser({
+        username: process.env.ADMIN_USER,
+        password: process.env.ADMIN_PASSWORD,
+        audience: 'private',
+        displayName: process.env.ADMIN_USER,
+      });
+      console.log(`👤 Seeded admin user "${process.env.ADMIN_USER}" from env.`);
+    } catch (err) {
+      console.error('Admin seed failed:', err.message);
+    }
+  }
 
   // === Public: sign-in ===
   router.get('/login', (req, res) => res.sendFile(path.join(CLONE_DIR, 'login.html')));
@@ -152,6 +170,74 @@ export function cloneRouter(openai) {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // === Studio: photos + Seedance music-video clips — Richard only ===
+  router.use(['/studio', '/images', '/video', '/videos'], requireAudience('private'));
+
+  router.get('/studio', (req, res) => res.sendFile(path.join(CLONE_DIR, 'studio.html')));
+
+  // body: { image: <base64>, label?, mimeType? }
+  router.post('/images', (req, res) => {
+    const { image, label, mimeType } = req.body;
+    if (!image) return res.status(400).json({ error: 'image (base64) is required.' });
+    try {
+      res.status(201).json(images.saveImage(Buffer.from(image, 'base64'), { label, mimeType }));
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  router.get('/images', (req, res) => res.json(images.listImages()));
+
+  router.get('/images/:id', (req, res) => {
+    try {
+      const { meta, data } = images.getImage(req.params.id);
+      res.set('Content-Type', meta.mimeType).send(data);
+    } catch {
+      res.status(404).json({ error: 'Image not found.' });
+    }
+  });
+
+  router.delete('/images/:id', (req, res) => {
+    try {
+      res.json({ deleted: images.deleteImage(req.params.id) });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // body: { prompt, imageId, duration?: '5'|'10', resolution?: '480p'|'720p'|'1080p' }
+  router.post('/video/generate', async (req, res) => {
+    try {
+      res.status(202).json(await video.generateClip(req.body || {}));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get('/video/status/:requestId', async (req, res) => {
+    try {
+      res.json(await video.checkClip(req.params.requestId));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get('/videos', (req, res) => res.json(video.listJobs()));
+
+  router.get('/videos/file/:name', (req, res) => {
+    try {
+      const p = video.videoPath(req.params.name);
+      if (!p) return res.status(404).json({ error: 'Video not found.' });
+      res.sendFile(p);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  router.delete('/videos/:requestId', (req, res) => {
+    res.json({ deleted: video.deleteClip(req.params.requestId) });
   });
 
   return router;

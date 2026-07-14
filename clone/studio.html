@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Studio — Richard's Clone</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #111318; --muted: #5b6472; --card: #f4f5f7;
+    --line: #e2e5ea; --accent: #2f6fed; --err: #d63333; --ok: #1d8a4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101318; --fg: #eceff4; --muted: #9aa3b0; --card: #1a1f27;
+      --line: #2a3140; --accent: #6fa0ff; --err: #ff6b6b; --ok: #4cc37e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+    max-width: 640px; margin-inline: auto;
+  }
+  h1 { font-size: 1.25rem; margin: 4px 0 2px; }
+  h2 { font-size: 1.05rem; margin: 22px 0 8px; }
+  .sub { color: var(--muted); font-size: .9rem; margin-bottom: 8px; }
+  .sub a { color: var(--accent); }
+  .banner { border-radius: 10px; padding: 10px 14px; margin: 10px 0; font-size: .9rem;
+    background: var(--card); border: 1px solid var(--line); display: none; }
+  .banner.error { display: block; border-color: var(--err); color: var(--err); }
+  .banner.ok { display: block; border-color: var(--ok); color: var(--ok); }
+  button {
+    font: inherit; border: 0; border-radius: 10px; padding: 10px 16px;
+    background: var(--accent); color: #fff; min-height: 44px; cursor: pointer;
+  }
+  button:disabled { opacity: .45; }
+  button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+  button.danger { background: transparent; color: var(--err); border: 1px solid var(--err); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin: 10px 0; }
+  .thumb { position: relative; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; aspect-ratio: 1; cursor: pointer; background: var(--card); }
+  .thumb.selected { border-color: var(--accent); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.55); color: #fff;
+    border: 0; border-radius: 8px; min-height: 0; padding: 2px 8px; font-size: .75rem; }
+  textarea, select {
+    width: 100%; font: inherit; padding: 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg);
+  }
+  .row { display: flex; gap: 8px; margin: 8px 0; }
+  .row > * { flex: 1; }
+  .clip { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+  .clip .meta { font-size: .85rem; color: var(--muted); margin-bottom: 6px; }
+  .clip video { width: 100%; border-radius: 10px; }
+  .clip .row { justify-content: flex-end; }
+  .clip .row > * { flex: 0; }
+</style>
+</head>
+<body>
+<h1>🎬 Studio</h1>
+<div class="sub">Turn photos of you into music-video clips with Seedance. <a href="/clone/app">← back to chat</a></div>
+<div id="banner" class="banner"></div>
+
+<h2>1 · Your photos</h2>
+<div class="sub">Clear, well-lit shots of you. Stored encrypted; used only for your avatar and videos.</div>
+<div class="row">
+  <input type="file" id="file" accept="image/jpeg,image/png,image/webp" capture="user" hidden>
+  <button id="addPhoto">📷 Add photo</button>
+</div>
+<div id="photos" class="grid"></div>
+
+<h2>2 · Direct the scene</h2>
+<textarea id="prompt" rows="3" placeholder="e.g. He performs under moody blue stage lights, slow camera push-in, haze in the air, cinematic"></textarea>
+<div class="row">
+  <select id="duration">
+    <option value="5">5 seconds</option>
+    <option value="10">10 seconds</option>
+  </select>
+  <select id="resolution">
+    <option value="720p">720p</option>
+    <option value="480p">480p (cheaper)</option>
+    <option value="1080p">1080p</option>
+  </select>
+</div>
+<button id="generate">Generate clip</button>
+
+<h2>3 · Clips</h2>
+<div id="clips"></div>
+
+<script>
+const banner = document.getElementById('banner');
+function flash(msg, cls) { banner.textContent = msg; banner.className = 'banner ' + cls; }
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, opts);
+  if (res.status === 401) { location.href = '/clone/login'; throw new Error('Signed out.'); }
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+  return res;
+}
+const json = async (path, opts) => (await api(path, opts)).json();
+
+let selectedImage = null;
+
+// --- photos ---
+const fileInput = document.getElementById('file');
+document.getElementById('addPhoto').onclick = () => fileInput.click();
+fileInput.onchange = async () => {
+  const f = fileInput.files[0];
+  if (!f) return;
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(f);
+    });
+    await json('/clone/images', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: b64, mimeType: f.type, label: f.name.replace(/\.\w+$/, '') }),
+    });
+    fileInput.value = '';
+    refreshPhotos();
+  } catch (err) { flash('Upload failed: ' + err.message, 'error'); }
+};
+
+async function refreshPhotos() {
+  const list = await json('/clone/images');
+  const grid = document.getElementById('photos');
+  grid.innerHTML = '';
+  if (!list.length) grid.innerHTML = '<div class="sub">No photos yet — add a few.</div>';
+  for (const p of list) {
+    const d = document.createElement('div');
+    d.className = 'thumb' + (p.id === selectedImage ? ' selected' : '');
+    d.innerHTML = `<img src="/clone/images/${p.id}" alt="${p.label}" loading="lazy">`;
+    d.onclick = () => { selectedImage = p.id; refreshPhotos(); };
+    const del = document.createElement('button');
+    del.className = 'del'; del.textContent = '✕';
+    del.onclick = async (e) => {
+      e.stopPropagation();
+      await api('/clone/images/' + p.id, { method: 'DELETE' });
+      if (selectedImage === p.id) selectedImage = null;
+      refreshPhotos();
+    };
+    d.appendChild(del);
+    grid.appendChild(d);
+  }
+}
+
+// --- generate ---
+document.getElementById('generate').onclick = async () => {
+  const btn = document.getElementById('generate');
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!selectedImage) return flash('Tap a photo first — that\\'s who the clip animates.', 'error');
+  if (!prompt) return flash('Describe the scene first.', 'error');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    await json('/clone/video/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt, imageId: selectedImage,
+        duration: document.getElementById('duration').value,
+        resolution: document.getElementById('resolution').value,
+      }),
+    });
+    flash('Clip queued — it appears below when Seedance finishes (usually under a minute).', 'ok');
+    refreshClips();
+  } catch (err) { flash('Generate failed: ' + err.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Generate clip';
+};
+
+// --- clips ---
+const pending = new Set();
+
+async function refreshClips() {
+  const jobs = await json('/clone/videos');
+  const wrap = document.getElementById('clips');
+  wrap.innerHTML = jobs.length ? '' : '<div class="sub">No clips yet.</div>';
+  for (const j of jobs) {
+    const el = document.createElement('div');
+    el.className = 'clip';
+    el.innerHTML = `<div class="meta">${j.status} · ${j.duration}s ${j.resolution} · ${j.prompt.slice(0, 80)}</div>`;
+    if (j.file) {
+      el.innerHTML += `<video controls playsinline src="/clone/videos/file/${j.file}"></video>`;
+    } else if (j.status !== 'FAILED') {
+      pollJob(j.requestId);
+    }
+    if (j.error) el.innerHTML += `<div class="meta">⚠ ${j.error}</div>`;
+    const row = document.createElement('div');
+    row.className = 'row';
+    if (j.file) {
+      const dl = document.createElement('a');
+      dl.href = '/clone/videos/file/' + j.file; dl.download = 'clip-' + j.requestId + '.mp4';
+      const dlBtn = document.createElement('button');
+      dlBtn.className = 'ghost'; dlBtn.textContent = 'Download';
+      dl.appendChild(dlBtn); row.appendChild(dl);
+    }
+    const del = document.createElement('button');
+    del.className = 'danger'; del.textContent = 'Delete';
+    del.onclick = async () => { await api('/clone/videos/' + j.requestId, { method: 'DELETE' }); refreshClips(); };
+    row.appendChild(del);
+    el.appendChild(row);
+    wrap.appendChild(el);
+  }
+}
+
+function pollJob(id) {
+  if (pending.has(id)) return;
+  pending.add(id);
+  const tick = async () => {
+    try {
+      const j = await json('/clone/video/status/' + id);
+      if (j.status === 'COMPLETED' || j.status === 'FAILED') {
+        pending.delete(id);
+        refreshClips();
+        return;
+      }
+    } catch { pending.delete(id); return; }
+    setTimeout(tick, 5000);
+  };
+  setTimeout(tick, 5000);
+}
+
+refreshPhotos();
+refreshClips();
+</script>
+</body>
+</html>

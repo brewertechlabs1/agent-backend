@@ -6,41 +6,17 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { encrypt, decrypt, dataBase } from './crypto.js';
 
-const VOICE_DIR = path.resolve('voice-data');
+const VOICE_DIR = path.resolve(dataBase(), 'voice-data');
 const SAMPLES_DIR = path.join(VOICE_DIR, 'samples');
 const VOICE_META = path.join(VOICE_DIR, 'voice.json');
 const ELEVEN_BASE = 'https://api.elevenlabs.io/v1';
-
-function storageKey() {
-  const hex = process.env.VOICE_STORAGE_KEY;
-  if (!hex || hex.length !== 64) {
-    throw new Error('VOICE_STORAGE_KEY must be a 32-byte hex key. Generate one with: openssl rand -hex 32');
-  }
-  return Buffer.from(hex, 'hex');
-}
 
 function elevenHeaders() {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) throw new Error('ELEVENLABS_API_KEY is not set.');
   return { 'xi-api-key': key };
-}
-
-// --- encryption at rest (AES-256-GCM) ---
-
-function encrypt(buf) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', storageKey(), iv);
-  const data = Buffer.concat([cipher.update(buf), cipher.final()]);
-  return Buffer.concat([iv, cipher.getAuthTag(), data]);
-}
-
-function decrypt(buf) {
-  const iv = buf.subarray(0, 12);
-  const tag = buf.subarray(12, 28);
-  const decipher = crypto.createDecipheriv('aes-256-gcm', storageKey(), iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(buf.subarray(28)), decipher.final()]);
 }
 
 // --- sample storage ---

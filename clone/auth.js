@@ -4,8 +4,9 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { dataBase } from './crypto.js';
 
-const DATA_DIR = path.resolve('data');
+const DATA_DIR = path.resolve(dataBase(), 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
