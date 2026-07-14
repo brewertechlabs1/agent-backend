@@ -1,0 +1,10 @@
+{
+  "title": "Richard's core stack",
+  "type": "fact",
+  "topic_tags": ["tools", "stack", "zapier", "notion", "ollama", "mistral", "llm", "automation"],
+  "relationship_scope": "public",
+  "recency": "2026-07-14",
+  "confidence": "stated",
+  "source": "clone-builder brief",
+  "content": "Day-to-day stack: Zapier for automation glue, Notion as the workspace and agent memory store, hosted LLM APIs for production pipelines, and local models via Ollama (Mistral) for local/offline work. Hands-on with prompt engineering, multi-agent architectures, and LLM pipelines."
+}

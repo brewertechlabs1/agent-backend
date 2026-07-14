@@ -1,6 +1,42 @@
 # Agent Server
 
-Express.js server for managing AI agents with Notion memory integration.
+Express.js server for managing AI agents with Notion memory integration —
+now including **Richard's AI clone**: a voice-enabled agent grounded in a
+knowledge base of his expertise, opinions, projects, and style.
+
+## The Clone (`/clone/*`)
+
+The clone = a cloned voice (ElevenLabs) + a knowledge base ("the brain")
+it consults before speaking. See:
+
+- `clone/CAPTURE_PLAN.md` — the recording session to train the voice
+- `clone/brain/README.md` — knowledge base structure, schema, seeding checklist
+- `clone/persona.md` — the clone's speaking rules and Style Guide (v1 draft)
+
+### Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/clone/ask` | `{message, audience?, speak?}` → grounded reply in Richard's voice (+ base64 audio if `speak: true`) |
+| POST | `/clone/speak` | `{text}` → MP3 in the cloned voice |
+| POST | `/clone/voice/samples` | `{audio: base64, label?, mimeType?}` → store an encrypted sample |
+| GET | `/clone/voice/samples` | List stored samples |
+| DELETE | `/clone/voice/samples/:id` | Delete one sample |
+| POST | `/clone/voice/enroll` | Train the ElevenLabs voice from stored samples |
+| GET | `/clone/voice` | Voice model status |
+| DELETE | `/clone/voice` | **One-tap delete**: voice model + all samples |
+
+`audience` on `/clone/ask` is `public` (default), `known`, or `private` —
+it controls which `relationship_scope` of brain entries may surface.
+
+### Voice data rules
+
+- Samples are encrypted at rest (AES-256-GCM, key = `VOICE_STORAGE_KEY`)
+  in the gitignored `voice-data/` folder.
+- Audio is used solely to build/maintain the voice model.
+- The clone identifies as Richard's AI in consequential conversations and
+  never handles payments, identity checks, or security verification
+  (see `clone/persona.md`).
 
 ## Fixed Issues
 

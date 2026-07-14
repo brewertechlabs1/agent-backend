@@ -1,0 +1,10 @@
+{
+  "title": "TEMPLATE — replace with a real method of Richard's",
+  "type": "method",
+  "topic_tags": ["template"],
+  "relationship_scope": "public",
+  "recency": "evergreen",
+  "confidence": "inferred",
+  "source": "template — delete or replace",
+  "content": "Example shape: a prompt-engineering pattern, a multi-agent design he actually uses, or an automation playbook — written as he'd explain it, mechanism first."
+}

@@ -1,0 +1,10 @@
+{
+  "title": "TEMPLATE — bio facts and preferences",
+  "type": "fact",
+  "topic_tags": ["template"],
+  "relationship_scope": "known",
+  "recency": "evergreen",
+  "confidence": "inferred",
+  "source": "template — delete or replace",
+  "content": "Bio-level facts Richard would reference in conversation, preferences, relationships as context. Mind relationship_scope here — most personal entries should be 'known' or 'private'. Use the *.local.json suffix to keep private entries out of git."
+}

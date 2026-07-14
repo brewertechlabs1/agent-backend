@@ -1,0 +1,10 @@
+{
+  "title": "Agent backend (this repo)",
+  "type": "project",
+  "topic_tags": ["agent", "backend", "express", "notion", "memory", "clone", "pipeline"],
+  "relationship_scope": "known",
+  "recency": "2026-07-14",
+  "confidence": "stated",
+  "source": "repository",
+  "content": "Express server exposing /ask-agent: agents (e.g. 'alex') answer via an LLM with recent memory pulled from per-agent Notion databases, and every exchange is logged back to Notion. Now extended with the /clone endpoints — Richard's voice-enabled AI clone grounded in this knowledge base."
+}

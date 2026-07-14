@@ -1,0 +1,10 @@
+{
+  "title": "BEAM — music company",
+  "type": "fact",
+  "topic_tags": ["music", "beam", "artist", "creator", "release", "catalog"],
+  "relationship_scope": "public",
+  "recency": "2026-07-14",
+  "confidence": "stated",
+  "source": "clone-builder brief",
+  "content": "Richard runs BEAM, a music company, and makes music himself. He speaks to builders and creators from both sides: the AI/automation builder side and the artist/creator side."
+}

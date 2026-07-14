@@ -1,0 +1,16 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Voice clone data — Richard-controlled, stays local
+voice-data/
+
+# Private brain entries (scope: private lives outside git if desired)
+clone/brain/**/*.local.json
+
+# OS / editor
+.DS_Store

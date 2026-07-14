@@ -4,10 +4,12 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import OpenAI from 'openai';
 import { Client } from '@notionhq/client';
+import { cloneRouter } from './clone/routes.js';
 
 dotenv.config();
 const app = express();
-app.use(express.json());
+// 25mb allows base64 voice-sample uploads to /clone/voice/samples
+app.use(express.json({ limit: '25mb' }));
 
 const PORT = process.env.PORT || 3000;
 
@@ -100,6 +102,9 @@ Respond conversationally and clearly.
     res.status(500).json({ error: 'Agent processing failed.' });
   }
 });
+
+// === Richard's AI clone: /clone/* (see clone/README section in README.md) ===
+app.use('/clone', cloneRouter(openai));
 
 // Start server
 app.listen(PORT, () => {

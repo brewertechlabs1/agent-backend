@@ -1,0 +1,10 @@
+{
+  "title": "TEMPLATE — replace with a real take of Richard's",
+  "type": "opinion",
+  "topic_tags": ["template"],
+  "relationship_scope": "public",
+  "recency": "evergreen",
+  "confidence": "inferred",
+  "source": "template — delete or replace",
+  "content": "Example shape: 'Most AI-business content is hype. The stuff that works is boring: one pipeline, shipped, measured.' Replace with Richard's actual stance, quoted or paraphrased from something he said or wrote, then set confidence to 'stated'."
+}
