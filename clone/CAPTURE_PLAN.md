@@ -46,8 +46,8 @@ sample management and one-tap training. No terminal needed.
 Phone browsers only allow mic access over **HTTPS** (or localhost), so
 expose the server securely first:
 
-1. Set `CLONE_API_TOKEN` in `.env` (`openssl rand -hex 16`) — the page
-   will prompt for it once and remember it.
+1. Create your account (once): `node clone/add-user.js richard private "Richard"`
+   — the capture page is restricted to `private` (you-level) accounts.
 2. Start the server: `npm start`
 3. Tunnel it, e.g. one of:
    ```bash
@@ -55,14 +55,17 @@ expose the server securely first:
    ngrok http 3000                    # if you have ngrok
    tailscale serve 3000               # if you're on Tailscale (nicest)
    ```
-4. Open `https://<tunnel-url>/clone/capture` on your phone and work
-   through the takes. iPhone records `audio/mp4`, Android `audio/webm` —
-   both are handled and accepted by ElevenLabs.
+4. Open `https://<tunnel-url>/clone/capture` on your phone, sign in,
+   and work through the takes. iPhone records `audio/mp4`, Android
+   `audio/webm` — both are handled and accepted by ElevenLabs.
 5. When the takes look good, hit **Train voice model** on the page.
 
 Kill the tunnel when you're done recording.
 
 ## Upload via curl (alternative, from a computer)
+
+Set `CLONE_API_TOKEN` in `.env` (acts as a private-level API credential),
+then for each file:
 
 ```bash
 base64 -w0 take-04-current-build.mp3 > audio.b64

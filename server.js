@@ -105,6 +105,7 @@ Respond conversationally and clearly.
 
 // === Richard's AI clone: /clone/* (see clone/README section in README.md) ===
 app.use('/clone', cloneRouter(openai));
+app.get('/', (req, res) => res.redirect('/clone/app'));
 
 // Start server
 app.listen(PORT, () => {

@@ -5,6 +5,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { retrieve, formatContext } from './brain.js';
 import * as voice from './voice.js';
+import {
+  verifyUser, createSession, destroySession, sessionCookie, clearedCookie,
+  requireAuth, requireAudience, listUsers,
+} from './auth.js';
 
 const CLONE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PERSONA = fs.readFileSync(path.join(CLONE_DIR, 'persona.md'), 'utf8');
@@ -12,27 +16,44 @@ const PERSONA = fs.readFileSync(path.join(CLONE_DIR, 'persona.md'), 'utf8');
 export function cloneRouter(openai) {
   const router = Router();
 
-  // Mobile capture page — record, review, upload, train from a phone browser
-  router.get('/capture', (req, res) => {
+  // === Public: sign-in ===
+  router.get('/login', (req, res) => res.sendFile(path.join(CLONE_DIR, 'login.html')));
+
+  router.post('/auth/login', (req, res) => {
+    if (listUsers().length === 0) {
+      return res.status(500).json({ error: 'No users exist yet. Create one: node clone/add-user.js <username> private' });
+    }
+    const user = verifyUser(req.body?.username, req.body?.password);
+    if (!user) return res.status(401).json({ error: 'Wrong username or password.' });
+    res.set('Set-Cookie', sessionCookie(createSession(user.username), req));
+    res.json(user);
+  });
+
+  // === Everything below requires a session (or CLONE_API_TOKEN for API use) ===
+  router.use(requireAuth);
+
+  router.post('/auth/logout', (req, res) => {
+    if (req.sessionToken) destroySession(req.sessionToken);
+    res.set('Set-Cookie', clearedCookie());
+    res.json({ ok: true });
+  });
+
+  router.get('/auth/me', (req, res) => res.json(req.user));
+
+  // Chat app (any signed-in user)
+  router.get('/app', (req, res) => res.sendFile(path.join(CLONE_DIR, 'app.html')));
+
+  // Mobile capture page — Richard only (manages his voice data)
+  router.get('/capture', requireAudience('private'), (req, res) => {
     res.sendFile(path.join(CLONE_DIR, 'capture.html'));
   });
 
-  // Optional shared-secret gate for everything below. Set CLONE_API_TOKEN
-  // when exposing the server beyond localhost (tunnel/LAN) so voice data
-  // and the brain aren't open to anyone with the URL.
-  router.use((req, res, next) => {
-    const required = process.env.CLONE_API_TOKEN;
-    if (!required) return next();
-    const provided = req.get('x-clone-token') ||
-      (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
-    if (provided === required) return next();
-    res.status(401).json({ error: 'Invalid or missing clone API token.' });
-  });
-
   // === Ask the clone (grounded, in Richard's voice) ===
-  // body: { message, audience?: 'public'|'known'|'private', speak?: boolean }
+  // body: { message, speak?: boolean } — audience comes from the signed-in
+  // user's account, so brain scope can't be escalated from the client.
   router.post('/ask', async (req, res) => {
-    const { message, audience = 'public', speak = false } = req.body;
+    const { message, speak = false } = req.body;
+    const audience = req.user.audience;
     if (!message) return res.status(400).json({ error: 'message is required.' });
     if (!openai) return res.status(500).json({ error: 'LLM not configured. Set LLM_API_KEY.' });
 
@@ -68,9 +89,11 @@ export function cloneRouter(openai) {
     }
   });
 
-  // === Speak arbitrary text in the cloned voice ===
+  // === Speak arbitrary text in the cloned voice — Richard only ===
+  // (others hear the voice via /ask replies; free-text TTS in his voice
+  //  is not something guests should have)
   // body: { text }  → audio/mpeg
-  router.post('/speak', async (req, res) => {
+  router.post('/speak', requireAudience('private'), async (req, res) => {
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: 'text is required.' });
     try {
@@ -81,7 +104,9 @@ export function cloneRouter(openai) {
     }
   });
 
-  // === Voice enrollment ===
+  // === Voice enrollment — Richard only from here down ===
+  router.use('/voice', requireAudience('private'));
+
   // body: { audio: <base64>, label?, mimeType? } — one recorded sample
   router.post('/voice/samples', (req, res) => {
     const { audio, label, mimeType } = req.body;

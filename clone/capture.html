@@ -102,17 +102,9 @@ const TAKES = [
 const banner = document.getElementById('banner');
 function flash(msg, cls) { banner.textContent = msg; banner.className = 'banner ' + cls; }
 
-function token() { return localStorage.getItem('cloneToken') || ''; }
 async function api(path, opts = {}) {
-  opts.headers = Object.assign({ 'x-clone-token': token() }, opts.headers || {});
-  let res = await fetch(path, opts);
-  if (res.status === 401) {
-    const t = prompt('Access token for this server (CLONE_API_TOKEN):');
-    if (t === null) throw new Error('Token required.');
-    localStorage.setItem('cloneToken', t.trim());
-    opts.headers['x-clone-token'] = t.trim();
-    res = await fetch(path, opts);
-  }
+  const res = await fetch(path, opts);
+  if (res.status === 401) { location.href = '/clone/login'; throw new Error('Signed out.'); }
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
   return res.json();
 }

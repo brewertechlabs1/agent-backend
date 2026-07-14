@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Richard's Clone</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #111318; --muted: #5b6472; --card: #f4f5f7;
+    --line: #e2e5ea; --accent: #2f6fed; --mine: #2f6fed; --minefg: #fff;
+    --rec: #d63333;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101318; --fg: #eceff4; --muted: #9aa3b0; --card: #1a1f27;
+      --line: #2a3140; --accent: #6fa0ff; --mine: #2c5cc7; --minefg: #fff;
+      --rec: #ff6b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; height: 100dvh;
+  }
+  header {
+    padding: 10px 16px calc(10px); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+  }
+  header .title { font-weight: 600; }
+  header .who { color: var(--muted); font-size: .8rem; margin-left: auto; }
+  header button {
+    font: inherit; font-size: .8rem; background: none; border: 1px solid var(--line);
+    color: var(--muted); border-radius: 8px; padding: 4px 10px; cursor: pointer;
+  }
+  .disclosure {
+    font-size: .75rem; color: var(--muted); text-align: center; padding: 6px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  #chat { flex: 1; overflow-y: auto; padding: 16px; }
+  .msg {
+    max-width: 85%; padding: 10px 14px; border-radius: 16px; margin-bottom: 10px;
+    white-space: pre-wrap; overflow-wrap: break-word;
+  }
+  .msg.me { background: var(--mine); color: var(--minefg); margin-left: auto; border-bottom-right-radius: 4px; }
+  .msg.clone { background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg.clone.thinking { color: var(--muted); font-style: italic; }
+  .msg .play {
+    display: inline-block; margin-top: 6px; font-size: .8rem; color: var(--accent);
+    background: none; border: none; padding: 0; cursor: pointer;
+  }
+  footer {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: flex-end;
+  }
+  #input {
+    flex: 1; font: inherit; padding: 12px; border-radius: 14px; resize: none;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg);
+    max-height: 120px;
+  }
+  footer button {
+    font: inherit; border: 0; border-radius: 12px; min-width: 48px; min-height: 48px;
+    background: var(--accent); color: #fff; cursor: pointer; font-size: 1.1rem;
+  }
+  footer button:disabled { opacity: .45; }
+  #mic.listening { background: var(--rec); }
+  .toggles { display: flex; gap: 14px; padding: 4px 16px 8px; font-size: .8rem; color: var(--muted); }
+  .toggles label { display: flex; gap: 5px; align-items: center; }
+</style>
+</head>
+<body>
+<header>
+  <span class="title">🧠 Richard's Clone</span>
+  <span class="who" id="who"></span>
+  <button id="logout">Sign out</button>
+</header>
+<div class="disclosure">AI clone of Richard B. — not the human Richard.</div>
+<div id="chat"></div>
+<div class="toggles">
+  <label><input type="checkbox" id="voiceOn" checked> 🔊 reply in Richard's voice</label>
+</div>
+<footer>
+  <textarea id="input" rows="1" placeholder="Say something…" enterkeyhint="send"></textarea>
+  <button id="mic" title="Speak instead of typing" hidden>🎤</button>
+  <button id="send" title="Send">➤</button>
+</footer>
+
+<script>
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const micBtn = document.getElementById('mic');
+
+async function me() {
+  const res = await fetch('/clone/auth/me');
+  if (!res.ok) { location.href = '/clone/login'; throw new Error('not logged in'); }
+  return res.json();
+}
+
+function bubble(cls, text) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + cls;
+  el.textContent = text;
+  chat.appendChild(el);
+  chat.scrollTop = chat.scrollHeight;
+  return el;
+}
+
+let player = null;
+function playAudio(b64) {
+  if (player) player.pause();
+  player = new Audio('data:audio/mpeg;base64,' + b64);
+  player.play().catch(() => {});
+}
+
+async function send() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  bubble('me', text);
+  const pending = bubble('clone thinking', '…');
+  sendBtn.disabled = true;
+  try {
+    const res = await fetch('/clone/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, speak: document.getElementById('voiceOn').checked }),
+    });
+    if (res.status === 401) { location.href = '/clone/login'; return; }
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error || 'Request failed.');
+    pending.className = 'msg clone';
+    pending.textContent = j.reply;
+    if (j.audio) {
+      playAudio(j.audio);
+      const replay = document.createElement('button');
+      replay.className = 'play';
+      replay.textContent = '▶ play again';
+      replay.onclick = () => playAudio(j.audio);
+      pending.appendChild(document.createElement('br'));
+      pending.appendChild(replay);
+    }
+  } catch (err) {
+    pending.className = 'msg clone';
+    pending.textContent = '⚠ ' + err.message;
+  }
+  sendBtn.disabled = false;
+  chat.scrollTop = chat.scrollHeight;
+}
+
+sendBtn.onclick = send;
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+// --- voice input via on-device speech recognition, where the browser has it ---
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  micBtn.hidden = false;
+  let rec = null;
+  micBtn.onclick = () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR();
+    rec.interimResults = true;
+    rec.onresult = (e) => {
+      input.value = Array.from(e.results).map((r) => r[0].transcript).join('');
+    };
+    rec.onend = () => {
+      micBtn.classList.remove('listening');
+      rec = null;
+      if (input.value.trim()) send();
+    };
+    rec.onerror = () => { micBtn.classList.remove('listening'); rec = null; };
+    micBtn.classList.add('listening');
+    rec.start();
+  };
+}
+
+document.getElementById('logout').onclick = async () => {
+  await fetch('/clone/auth/logout', { method: 'POST' });
+  location.href = '/clone/login';
+};
+
+me().then((u) => {
+  document.getElementById('who').textContent = u.displayName;
+  const hour = new Date().getHours();
+  bubble('clone', (hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening') +
+    `, ${u.displayName}. I'm Richard's AI clone — grounded in his knowledge base, speaking in his voice. What do you want to get into?`);
+});
+</script>
+</body>
+</html>

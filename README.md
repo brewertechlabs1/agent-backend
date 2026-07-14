@@ -13,31 +13,61 @@ it consults before speaking. See:
 - `clone/brain/README.md` — knowledge base structure, schema, seeding checklist
 - `clone/persona.md` — the clone's speaking rules and Style Guide (v1 draft)
 
+### The web app (works on phones)
+
+`/` redirects to **`/clone/app`** — a mobile-first chat UI behind a
+login. Signed-in users talk to the clone by text or mic (on-device
+speech recognition where the browser supports it) and hear replies in
+Richard's cloned voice.
+
+**Create users** (stored scrypt-hashed in the gitignored `data/` folder):
+
+```bash
+node clone/add-user.js richard private "Richard"   # full access
+node clone/add-user.js jamie known "Jamie"         # friends/colleagues
+node clone/add-user.js guest public                # anyone else
+```
+
+The account's **audience level** decides two things, enforced
+server-side:
+
+- which `relationship_scope` of brain entries the clone will surface to
+  them (`private` sees everything, `known` sees known+public, `public`
+  sees public only) — clients cannot escalate this;
+- what they can do: only `private` accounts reach `/clone/capture`,
+  `/clone/speak`, and the `/clone/voice/*` management routes.
+
+Sessions are httpOnly cookies (30 days); sign out from the app header.
+For scripts, `CLONE_API_TOKEN` (header `x-clone-token` or Bearer) acts
+as a `private`-level API credential.
+
 ### Endpoints
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/clone/capture` | **Mobile capture page** — record, review, upload, and train from a phone browser |
-| POST | `/clone/ask` | `{message, audience?, speak?}` → grounded reply in Richard's voice (+ base64 audio if `speak: true`) |
-| POST | `/clone/speak` | `{text}` → MP3 in the cloned voice |
-| POST | `/clone/voice/samples` | `{audio: base64, label?, mimeType?}` → store an encrypted sample |
-| GET | `/clone/voice/samples` | List stored samples |
-| DELETE | `/clone/voice/samples/:id` | Delete one sample |
-| POST | `/clone/voice/enroll` | Train the ElevenLabs voice from stored samples |
-| GET | `/clone/voice` | Voice model status |
-| DELETE | `/clone/voice` | **One-tap delete**: voice model + all samples |
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/clone/login` | public | Sign-in page |
+| POST | `/clone/auth/login` | public | `{username, password}` → session cookie |
+| POST | `/clone/auth/logout` | signed-in | End session |
+| GET | `/clone/auth/me` | signed-in | Current user + audience |
+| GET | `/clone/app` | signed-in | **Chat app** (mobile-first) |
+| POST | `/clone/ask` | signed-in | `{message, speak?}` → grounded reply (+ base64 audio); audience comes from the account |
+| GET | `/clone/capture` | private | **Mobile capture page** — record, review, upload, train |
+| POST | `/clone/speak` | private | `{text}` → MP3 in the cloned voice |
+| POST | `/clone/voice/samples` | private | `{audio: base64, label?, mimeType?}` → store an encrypted sample |
+| GET | `/clone/voice/samples` | private | List stored samples |
+| DELETE | `/clone/voice/samples/:id` | private | Delete one sample |
+| POST | `/clone/voice/enroll` | private | Train the ElevenLabs voice from stored samples |
+| GET | `/clone/voice` | private | Voice model status |
+| DELETE | `/clone/voice` | private | **One-tap delete**: voice model + all samples |
 
-`audience` on `/clone/ask` is `public` (default), `known`, or `private` —
-it controls which `relationship_scope` of brain entries may surface.
+### Using it from a phone
 
-### Recording from a phone
-
-Open `/clone/capture` on the phone's browser. Mic access requires HTTPS,
-so expose the local server via a tunnel (`npx localtunnel --port 3000`,
-`ngrok http 3000`, or `tailscale serve 3000`) and set `CLONE_API_TOKEN`
-in `.env` first — with a token set, every `/clone/*` API call must send
-it (`x-clone-token` header or `Authorization: Bearer`); the capture page
-prompts once and remembers it. Full walkthrough in `clone/CAPTURE_PLAN.md`.
+Phone browsers require HTTPS for mic access (both the capture page and
+the chat mic), so expose the server via a tunnel — `npx localtunnel
+--port 3000`, `ngrok http 3000`, or `tailscale serve 3000` — then open
+`https://<url>/` on the phone and sign in. For a permanent setup, put
+the app on a small host (Fly.io, Railway, a VPS behind Caddy) with real
+TLS.
 
 ### Voice data rules
 
